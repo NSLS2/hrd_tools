@@ -28,18 +28,26 @@ import xrt.backends.raycing as raycing
 import xrt.plotter as xrtplot
 import xrt.runner as xrtrun
 
-crystalSi01 = rmats.CrystalSi(t=10)
+crystalSi01 = rmats.CrystalSi(t=1)
 
 arm_tth = 0.2  # 0135
-R = 2000
-Rd = 500
-cry_offset = np.deg2rad(5)
+
+# copy ESRF geometry as baseline
+R = 425
+Rd = 370
+
+cry_offset = np.deg2rad(2)
+cry_width = 102
+cry_depth = 54
+
+E_incident = 20_000
+
 
 ring_tth = 0.2
-theta_b = crystalSi01.get_Bragg_angle(20000)
+theta_b = crystalSi01.get_Bragg_angle(E_incident)
 
 
-def set_crystals(arm_tth, crystals, screens, offset=np.deg2rad(5)):
+def set_crystals(arm_tth, crystals, screens, offset=cry_offset):
     print(f"{arm_tth=}")
     for j, (cry, screen) in enumerate(zip(crystals, screens)):
         cry_tth = arm_tth + j * offset
@@ -57,8 +65,8 @@ def set_crystals(arm_tth, crystals, screens, offset=np.deg2rad(5)):
         ]
 
 
-def build_beamline():
-    beamLine = raycing.BeamLine(alignE=20000)
+def build_beamline(N=3):
+    beamLine = raycing.BeamLine(alignE=E_incident)
 
     beamLine.geometricSource01 = rsources.GeometricSource(
         bl=beamLine,
@@ -68,14 +76,15 @@ def build_beamline():
         distxprime=r"annulus",
         dxprime=[2499, ring_tth],
         distzprime=r"flat",
-        dzprime=[0.7853981633974483, 2.356194490192345],
-        energies=[20000.0],
+        dzprime=[np.pi / 4, 3 * np.pi / 4],
+        distE="normal",
+        energies=[E_incident, E_incident * 1.4e-4],
     )
     beamLine.screen_main = rscreens.Screen(
-        bl=beamLine, center=[0, 3000, r"auto"], name="main"
+        bl=beamLine, center=[0, 150, r"auto"], name="main"
     )
 
-    for j in range(0, 4):
+    for j in range(0, N):
         cry_tth = arm_tth + j * cry_offset
         # accept xrt coordinates
         cry_y = R * np.cos(cry_tth)
@@ -92,8 +101,8 @@ def build_beamline():
                 pitch=-cry_tth + theta_b,
                 positionRoll=np.pi,
                 material=crystalSi01,
-                limPhysX=[-200, 200.0],
-                limPhysY=[-100, 200.0],
+                limPhysX=[-cry_width / 2, cry_width / 2],
+                limPhysY=[-cry_depth / 2, cry_depth / 2],
             ),
         )
         setattr(
@@ -107,9 +116,11 @@ def build_beamline():
                     cry_z - Rd * np.cos(theta_pp),
                 ],
                 x=(1, 0, 0),
+                # z=(...)  # TODO for tilt
             ),
         )
-
+    # monkeypatch the number of crystals
+    beamLine.N_crystals = N
     return beamLine
 
 
@@ -120,25 +131,26 @@ def run_process(beamLine):
         beam=geometricSource01beamGlobal01
     )
 
-    oe01beamGlobal01, oe01beamLocal01 = beamLine.oe00.reflect(
-        beam=geometricSource01beamGlobal01
-    )
-    screen02beamLocal01 = beamLine.screen00.expose(beam=oe01beamGlobal01)
-
-    oe02beamGlobal01, oe02beamLocal01 = beamLine.oe01.reflect(
-        beam=geometricSource01beamGlobal01
-    )
-    screen03beamLocal01 = beamLine.screen01.expose(beam=oe02beamGlobal01)
-
     outDict = {
-        "geometricSource01beamGlobal01": geometricSource01beamGlobal01,
-        "oe01beamGlobal01": oe01beamGlobal01,
-        "oe01beamLocal01": oe01beamLocal01,
-        "screen01beamLocal01": screen01beamLocal01,
-        "screen02beamLocal01": screen02beamLocal01,
-        "screen03beamLocal01": screen03beamLocal01,
+        "source": geometricSource01beamGlobal01,
+        "source_screen": screen01beamLocal01,
     }
+
+    for j in range(beamLine.N_crystals):
+
+        oeglobal, oelocal = getattr(beamLine, f"oe{j:02d}").reflect(
+            beam=geometricSource01beamGlobal01
+        )
+        outDict[f"cry{j:02d}_local"] = oelocal
+        outDict[f"cry{j:02d}_global"] = oeglobal
+        outDict[f"screen{j:02d}"] = getattr(beamLine, f"screen{j:02d}").expose(
+            beam=oeglobal
+        )
+
+    # prepare flow looks at the locals of this frame so update them
+    locals().update(outDict)
     beamLine.prepare_flow()
+
     return outDict
 
 
@@ -149,7 +161,13 @@ def gen(beamline):
     crystals = beamline.oes
     screens = beamline.screens[1:]
 
-    for j, tth in enumerate(np.linspace(0.2, 0.20135, 128)):
+    start = ring_tth - (beamline.N_crystals - 1) * cry_offset
+    tths = np.linspace(start, ring_tth, 512)
+    set_crystals(tths[30], crystals, screens)
+    # beamline.screen_main.name = f"{tth:.4f}"
+    yield
+    for j, tth in enumerate(tths):
+        # beamline.screen_main.name = f"{tth:.4f}"
         set_crystals(tth, crystals, screens)
         beamline.glowFrameName = f"/tmp/frame_{j:04d}.png"
         yield
