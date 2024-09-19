@@ -41,8 +41,9 @@
   import os
   import numpy as np
   import matplotlib.pyplot as plt
+  from matplotlib.colors import BoundaryNorm
 
-  def test(d, tth, rebinned_I, rebinned_tth, th_offset, starta, stopa, roi=0, fig=None, show_correct=False):
+  def test(d, tth, rebinned_I, rebinned_tth, th_offset, starta, stopa, roi=0, fig=None, show_correct=False, N_photons=7):
       start = np.searchsorted(tth, starta)
       stop = np.searchsorted(tth, stopa)
       if stop == len(tth):
@@ -60,20 +61,23 @@
       ax2.plot(sub.sum(axis=1), tth[start:stop])
       if show_correct:
           ax2.plot(rebinned_I[roi], rebinned_tth - th_offset[roi])
-      cmap = plt.get_cmap('viridis')
+      cmap = plt.get_cmap('viridis').resampled(N_photons)
       cmap.set_under('w', alpha=0)
-      im = ax1.imshow(sub, extent=(0, sub.shape[-1], tth[start], tth[stop]), aspect='auto', vmin=1, vmax=np.max(sub), cmap=cmap, origin='lower')
-      fig.colorbar(im, use_gridspec=True, extend='min', label='photon count')
+      norm = BoundaryNorm(np.arange(.5, N_photons + 1, 1), N_photons)
+      im = ax1.imshow(sub, extent=(0, sub.shape[-1], tth[start], tth[stop]), aspect='auto', norm=norm, cmap=cmap, origin='lower')#, interpolation_stage='rgba')
+      cb = fig.colorbar(im, use_gridspec=True, extend='min', label='photon count')
+      cb.ax.set_yticks(np.arange(1, N_photons + 1, 1))
+      cb.ax.yaxis.set_ticks([], minor=True)
       print(f'{np.min(sub)=}, {np.max(sub)=}')
       return fig
 
 
   #test(dr, tth, 16test(dr, tth, 0, 40, roi=0)9700, 171300, roi=0)
-  test(dr, tth, rebined, r_tth, th_offset, -10, 40, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_a.png'))
-  test(dr, tth, rebined, r_tth, th_offset, 18, 19, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_b.png'))
-  test(dr, tth, rebined, r_tth, th_offset, 18.3, 18.5, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_c.png'))
-  test(dr, tth, rebined, r_tth, th_offset, 18.46, 18.49, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_d.png'))
-
+  test(dr, tth, rebined, r_tth, th_offset, -10, 40, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_a.png'), dpi=400)
+  test(dr, tth, rebined, r_tth, th_offset, 18, 19, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_b.png'), dpi=400)
+  test(dr, tth, rebined, r_tth, th_offset, 18.3, 18.5, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_c.png'), dpi=400)
+  test(dr, tth, rebined, r_tth, th_offset, 18.46, 18.49, roi=0).savefig(os.path.expanduser('~/windows_bridge/esrf_d.png'), dpi=400)
+  plt.show()
 
 
   # test(dr, tth, -10, 40, roi=0)
