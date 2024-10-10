@@ -43,7 +43,7 @@ cry_depth = 54
 E_incident = 20_000
 
 
-ring_tth = 0.2
+ring_tth = np.deg2rad(15)
 theta_b = crystalSi01.get_Bragg_angle(E_incident)
 
 
@@ -54,15 +54,21 @@ def set_crystals(arm_tth, crystals, screens, offset=cry_offset):
         # accept xrt coordinates
         cry_y = R * np.cos(cry_tth)
         cry_z = R * np.sin(cry_tth)
-        cry.pitch = -cry_tth + theta_b
-        cry.center = [0, cry_y, cry_z]
+        pitch = -cry_tth + theta_b
 
-        theta_pp = np.pi / 4 - (2 * theta_b - cry_tth)
+        cry.center = [0, cry_y, cry_z]
+        cry.pitch = pitch
+
+        theta_pp = theta_b + pitch
         screen.center = [
             0,
-            cry_y + Rd * np.sin(theta_pp),
-            cry_z - Rd * np.cos(theta_pp),
+            cry_y + Rd * np.cos(theta_pp),
+            cry_z - Rd * np.sin(theta_pp),
         ]
+
+        screen_angle = theta_pp
+
+        screen.z = (0, np.sin(screen_angle), np.cos(screen_angle))
 
 
 def build_beamline(N=3):
@@ -74,12 +80,13 @@ def build_beamline(N=3):
         dx=0.001,
         dz=0.001,
         distxprime=r"annulus",
-        dxprime=[2499, ring_tth],
+        dxprime=[ring_tth - 5e-3, ring_tth - 5e-3],
         distzprime=r"flat",
         dzprime=[np.pi / 4, 3 * np.pi / 4],
         distE="normal",
         energies=[E_incident, E_incident * 1.4e-4],
     )
+    # TODO switch to plates
     beamLine.screen_main = rscreens.Screen(
         bl=beamLine, center=[0, 150, r"auto"], name="main"
     )
@@ -90,7 +97,10 @@ def build_beamline(N=3):
         cry_y = R * np.cos(cry_tth)
         cry_z = R * np.sin(cry_tth)
 
+        pitch = (-cry_tth + theta_b,)
         theta_pp = np.pi / 4 - (2 * theta_b - cry_tth)
+
+        print(f"{pitch=}")
         setattr(
             beamLine,
             f"oe{j:02d}",
@@ -98,7 +108,7 @@ def build_beamline(N=3):
                 name=f"cry{j:02d}",
                 bl=beamLine,
                 center=[0, cry_y, cry_z],
-                pitch=-cry_tth + theta_b,
+                pitch=pitch,
                 positionRoll=np.pi,
                 material=crystalSi01,
                 limPhysX=[-cry_width / 2, cry_width / 2],
@@ -112,11 +122,10 @@ def build_beamline(N=3):
                 bl=beamLine,
                 center=[
                     0,
-                    cry_y + Rd * np.sin(theta_pp),
-                    cry_z - Rd * np.cos(theta_pp),
+                    cry_y + Rd * np.cos(theta_pp),
+                    cry_z - 0 * Rd * np.sin(theta_pp),
                 ],
                 x=(1, 0, 0),
-                # z=(...)  # TODO for tilt
             ),
         )
     # monkeypatch the number of crystals
@@ -157,18 +166,19 @@ def run_process(beamLine):
 rrun.run_process = run_process
 
 
-def gen(beamline):
-    crystals = beamline.oes
-    screens = beamline.screens[1:]
+def move_arm(beamline, tth):
+    set_crystals(tth, beamline.oes, beamline.screens[1:])
 
+
+def gen(beamline):
     start = ring_tth - (beamline.N_crystals - 1) * cry_offset
-    tths = np.linspace(start, ring_tth, 512)
-    set_crystals(tths[30], crystals, screens)
+    tths = np.linspace(start, ring_tth, 128)
+    move_arm(beamline, tths[30])
     # beamline.screen_main.name = f"{tth:.4f}"
     yield
     for j, tth in enumerate(tths):
         # beamline.screen_main.name = f"{tth:.4f}"
-        set_crystals(tth, crystals, screens)
+        move_arm(beamline, tth)
         beamline.glowFrameName = f"/tmp/frame_{j:04d}.png"
         yield
 
@@ -199,3 +209,60 @@ if __name__ == "__main__":
     main()
 
 bl = show_bl()
+
+
+def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
+    # print(lb.x, lb.y, lb.z, lb.state)
+    good = (lb.state == 1) | (lb.state == 2)
+    if isScreen:
+        x, y, z = lb.x[good], lb.z[good], lb.y[good]
+    else:
+        x, y, z = lb.x[good], lb.y[good], lb.z[good]
+    goodlen = len(lb.x[good])
+
+    limits = list((pixel_size * np.array([[-0.5, 0.5]]).T * np.array([shape])).T)
+
+    flux = lb.Jss[good] + lb.Jpp[good]
+    hist2d, yedges, xedges = np.histogram2d(
+        y, x, bins=shape, range=limits, weights=flux
+    )
+
+    return hist2d, yedges, xedges
+
+
+def scan(bl, start, stop, delta, *, screen=0):
+    tths = np.linspace(start, stop, int((stop - start) / delta))
+    out = []
+    for tth in tths:
+        move_arm(bl, tth)
+        outDict = run_process(bl)
+        lb = outDict[f"screen{screen:02d}"]
+        out.append(build_hist(lb)[0].sum(axis=0))
+
+    return np.asarray(out), tths
+
+
+def show(data, tths):
+    fig, ax = plt.subplots(layout="constrained")
+    im = ax.imshow(
+        data,
+        norm="log",
+        aspect="auto",
+        origin="lower",
+        extent=[0, data.shape[1], tths[0], tths[-1]],
+        interpolation_stage="rgba",
+    )
+    cbar = fig.colorbar(im)
+    cbar.set_label("I [arb]")
+    ax.set_xlabel("pixel")
+    ax.set_ylabel(r"arm 2$\theta$ [rad]")
+
+
+def scan_and_plot(bl, tths):
+    data, _ = scan(bl, tths)
+    show(data, tths)
+
+
+def demo():
+    a, tths = scan(bl, ring_tth - 100e-4, ring_tth + 75e-4, 5e-5)
+    show(a, tths)
