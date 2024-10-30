@@ -247,18 +247,69 @@ def scan(bl, start, stop, delta, *, screen=0):
     return np.asarray(out), tths
 
 
-def show(data, tths):
-    fig, ax = plt.subplots(layout="constrained")
-    im = ax.imshow(
+def show2(data, tth, *, N=None):
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+
+    if N is not None:
+        data = np.random.poisson(N * (data / np.max(data)))
+        kwargs = dict(vmin=1)
+        label = "count"
+    else:
+        kwargs = dict(norm="log")
+        label = "I [arb]"
+
+    sub = data
+    fig = plt.figure(figsize=(9, 4.5), constrained_layout=True)
+
+    (ax2, ax1) = fig.subplots(1, 2, sharey=True, width_ratios=[1, 5])
+    ax2.set_ylabel("arm position (°)")
+    ax2.set_xlabel("row sum")
+    ax1.set_xlabel("detector column")
+
+    ax2.plot(sub.sum(axis=1), tth)
+    # cmap = plt.get_cmap('viridis').resampled(N)
+    # cmap.set_under('w', alpha=0)
+    # norm = BoundaryNorm(np.arange(.5, N_photons + 1, 1), N_photons)
+    # im = ax1.imshow(sub, extent=(0, sub.shape[-1], tth[start], tth[stop]), aspect='auto', norm=norm, cmap=cmap, origin='lower')#, interpolation_stage='rgba')
+
+    im = ax1.imshow(
         data,
-        norm="log",
         aspect="auto",
         origin="lower",
         extent=[0, data.shape[1], tths[0], tths[-1]],
         interpolation_stage="rgba",
+        cmap=mpl.colormaps["viridis"].with_extremes(under="w"),
+        **kwargs,
+    )
+    cb = fig.colorbar(im, use_gridspec=True, extend="min", label="photon count")
+    # cb.ax.set_yticks(np.arange(1, N_photons + 1, 1))
+    cb.ax.yaxis.set_ticks([], minor=True)
+
+
+def show(data, tths, *, N=None):
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(layout="constrained")
+    if N is not None:
+        data = np.random.poisson(N * (data / np.max(data)))
+        kwargs = dict(vmin=1)
+        label = "count"
+    else:
+        kwargs = dict(norm="log")
+        label = "I [arb]"
+
+    im = ax.imshow(
+        data,
+        aspect="auto",
+        origin="lower",
+        extent=[0, data.shape[1], tths[0], tths[-1]],
+        interpolation_stage="rgba",
+        cmap=mpl.colormaps["viridis"].with_extremes(under="w"),
+        **kwargs,
     )
     cbar = fig.colorbar(im)
-    cbar.set_label("I [arb]")
+    cbar.set_label(label)
     ax.set_xlabel("pixel")
     ax.set_ylabel(r"arm 2$\theta$ [rad]")
 
@@ -271,3 +322,13 @@ def scan_and_plot(bl, tths):
 def demo():
     a, tths = scan(bl, ring_tth - 100e-4, ring_tth + 75e-4, 5e-5)
     show(a, tths)
+
+
+def source_size_scan(bl):
+    out = []
+    widths = np.logspace(-2, 1, 16, base=10)
+    for w in widths:
+        bl.sources[0].dx = w
+        a, tths = scan(bl, ring_tth - 100e-4, ring_tth + 75e-4, 5e-5)
+        out.append(a)
+    return widths, tths, np.array(out)
