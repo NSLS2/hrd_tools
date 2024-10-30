@@ -28,32 +28,37 @@ import xrt.backends.raycing as raycing
 import xrt.plotter as xrtplot
 import xrt.runner as xrtrun
 
+from bad_tools.reduce import AnalyzerConfig
 crystalSi01 = rmats.CrystalSi(t=1)
 
 arm_tth = 0.2  # 0135
 
-# copy ESRF geometry as baseline
-R = 425
-Rd = 370
+config = AnalyzerConfig(
+    # copy ESRF geometry as baseline
+    R=425,
+    Rd=370,
+    cry_offset=2,
+    cry_width=102,
+    cry_depth=54,
+    N=3,
+    acceptance_angle=0.05651551
+)
 
-cry_offset = np.deg2rad(2)
-cry_width = 102
-cry_depth = 54
-
-E_incident = 20_000
+E_incident = 29_400
 
 
 ring_tth = np.deg2rad(15)
 theta_b = crystalSi01.get_Bragg_angle(E_incident)
 
 
-def set_crystals(arm_tth, crystals, screens, offset=cry_offset):
+def set_crystals(arm_tth, crystals, screens, config):
+    offset = np.deg2rad(config.cry_offset)
     print(f"{arm_tth=}")
     for j, (cry, screen) in enumerate(zip(crystals, screens)):
         cry_tth = arm_tth + j * offset
         # accept xrt coordinates
-        cry_y = R * np.cos(cry_tth)
-        cry_z = R * np.sin(cry_tth)
+        cry_y = config.R * np.cos(cry_tth)
+        cry_z = config.R * np.sin(cry_tth)
         pitch = -cry_tth + theta_b
 
         cry.center = [0, cry_y, cry_z]
@@ -62,8 +67,8 @@ def set_crystals(arm_tth, crystals, screens, offset=cry_offset):
         theta_pp = theta_b + pitch
         screen.center = [
             0,
-            cry_y + Rd * np.cos(theta_pp),
-            cry_z - Rd * np.sin(theta_pp),
+            cry_y + config.Rd * np.cos(theta_pp),
+            cry_z - config.Rd * np.sin(theta_pp),
         ]
 
         screen_angle = theta_pp
@@ -71,7 +76,7 @@ def set_crystals(arm_tth, crystals, screens, offset=cry_offset):
         screen.z = (0, np.sin(screen_angle), np.cos(screen_angle))
 
 
-def build_beamline(N=3):
+def build_beamline(config):
     beamLine = raycing.BeamLine(alignE=E_incident)
 
     beamLine.geometricSource01 = rsources.GeometricSource(
@@ -91,11 +96,11 @@ def build_beamline(N=3):
         bl=beamLine, center=[0, 150, r"auto"], name="main"
     )
 
-    for j in range(0, N):
-        cry_tth = arm_tth + j * cry_offset
+    for j in range(0, config.N):
+        cry_tth = arm_tth + j * config.cry_offset
         # accept xrt coordinates
-        cry_y = R * np.cos(cry_tth)
-        cry_z = R * np.sin(cry_tth)
+        cry_y = config.R * np.cos(cry_tth)
+        cry_z = config.R * np.sin(cry_tth)
 
         pitch = (-cry_tth + theta_b,)
         theta_pp = np.pi / 4 - (2 * theta_b - cry_tth)
@@ -111,8 +116,8 @@ def build_beamline(N=3):
                 pitch=pitch,
                 positionRoll=np.pi,
                 material=crystalSi01,
-                limPhysX=[-cry_width / 2, cry_width / 2],
-                limPhysY=[-cry_depth / 2, cry_depth / 2],
+                limPhysX=[-config.cry_width / 2, config.cry_width / 2],
+                limPhysY=[-config.cry_depth / 2, config.cry_depth / 2],
             ),
         )
         setattr(
@@ -122,14 +127,14 @@ def build_beamline(N=3):
                 bl=beamLine,
                 center=[
                     0,
-                    cry_y + Rd * np.cos(theta_pp),
-                    cry_z - 0 * Rd * np.sin(theta_pp),
+                    cry_y + config.Rd * np.cos(theta_pp),
+                    cry_z - 0 * config.Rd * np.sin(theta_pp),
                 ],
                 x=(1, 0, 0),
             ),
         )
-    # monkeypatch the number of crystals
-    beamLine.N_crystals = N
+    # monkeypatch the config object
+    beamLine.config = config
     return beamLine
 
 
@@ -145,7 +150,7 @@ def run_process(beamLine):
         "source_screen": screen01beamLocal01,
     }
 
-    for j in range(beamLine.N_crystals):
+    for j in range(beamLine.config.N):
 
         oeglobal, oelocal = getattr(beamLine, f"oe{j:02d}").reflect(
             beam=geometricSource01beamGlobal01
@@ -167,11 +172,11 @@ rrun.run_process = run_process
 
 
 def move_arm(beamline, tth):
-    set_crystals(tth, beamline.oes, beamline.screens[1:])
+    set_crystals(tth, beamline.oes, beamline.screens[1:], beamline.config)
 
 
 def gen(beamline):
-    start = ring_tth - (beamline.N_crystals - 1) * cry_offset
+    start = ring_tth - (beamline.config.N - 1) * beamline.config.cry_offset
     tths = np.linspace(start, ring_tth, 128)
     move_arm(beamline, tths[30])
     # beamline.screen_main.name = f"{tth:.4f}"
@@ -183,8 +188,8 @@ def gen(beamline):
         yield
 
 
-def show_bl():
-    bl = build_beamline()
+def show_bl(config):
+    bl = build_beamline(config)
     rrun.run_process = run_process
     bl.glow(centerAt="screen01", exit_on_close=False, generator=gen, generatorArgs=[bl])
     # bl.glow(scale=[5e3, 10, 5e3], centerAt='xtal1')
@@ -208,7 +213,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-bl = show_bl()
+bl = show_bl(config)
 
 
 def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
