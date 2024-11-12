@@ -1,36 +1,62 @@
-# -*- coding: utf-8 -*-
-"""
-
-__author__ = "Konstantin Klementiev", "Roman Chernikov"
-__date__ = "2024-09-17"
-
-Created with xrtQook
+from dataclasses import dataclass, asdict
 
 
-
-
-"""
-from dataclasses import dataclass
 import numpy as np
+import pandas as pd
+import h5py
+
+
 import multianalyzer.opencl
 
 
-import xrt.backends.raycing.sources as rsources
-import xrt.backends.raycing.screens as rscreens
+import xrt.backends.raycing as raycing
 import xrt.backends.raycing.materials as rmats
 import xrt.backends.raycing.oes as roes
 import xrt.backends.raycing.run as rrun
-import xrt.backends.raycing as raycing
+import xrt.backends.raycing.screens as rscreens
+import xrt.backends.raycing.sources as rsources
+import xrt.backends.raycing.sources_beams as rsources_beams
 import xrt.runner as xrtrun
 
-from bad_tools.reduce import AnalyzerConfig, DetectorConfig
-import pandas as pd
+
+@dataclass(frozen=True)
+class AnalyzerConfig:
+    # sample to (central) crystal
+    R: float
+    # crystal to detector distance
+    Rd: float
+    # angular offset between crystals in deg
+    cry_offset: float
+    # crystal width (transverse to beam) in mm
+    cry_width: float
+    # crystal depth (direction of beam) in mm
+    cry_depth: float
+    # number of crystals
+    N: int
+    # acceptance angle of crystals
+    acceptance_angle: float
+
+
+@dataclass(frozen=True)
+class DetectorConfig:
+    # pixel pitch in mm
+    pitch: float
+    # pixel width in transverse direction
+    transverse_size: int
+    # Size of active area in direction of beam in mm
+    height: float
+
 
 fname = "/home/tcaswell/Downloads/11bmb_7871_Y1.xye"
 
+
 @dataclass
 class SimConfig:
-    nrays : int
+    nrays: int
+
+
+def pattern_sample(tth, cumsum, N):
+    return np.arccos(np.sin(tth)[np.searchsorted(cumsum, np.random.rand(N))])
 
 
 class XrdSource(rsources.GeometricSource):
@@ -63,7 +89,7 @@ crystalSi01 = rmats.CrystalSi(t=1)
 arm_tth = 0.2  # 0135
 
 # copy ESRF geometry as baseline
-config = AnalyzerConfig(
+config_mac = AnalyzerConfig(
     R=425,
     Rd=370,
     cry_offset=np.deg2rad(2),
@@ -72,8 +98,18 @@ config = AnalyzerConfig(
     N=3,
     acceptance_angle=0.05651551,
 )
-detector_config = DetectorConfig(pitch=0.055, transverse_size=512)
-sim_config = sim_config(nrays=500_000)
+config = AnalyzerConfig(
+    R=300,
+    Rd=115,
+    cry_offset=np.deg2rad(3),
+    cry_width=102,
+    cry_depth=54,
+    N=5,
+    acceptance_angle=0.05651551,
+)
+
+detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=1)
+sim_config = SimConfig(nrays=10_000)
 E_incident = 29_400
 
 
@@ -83,7 +119,7 @@ theta_b = crystalSi01.get_Bragg_angle(E_incident)
 
 def set_crystals(arm_tth, crystals, screens, config):
     offset = config.cry_offset
-    for j, (cry, screen) in enumerate(zip(crystals, screens)):
+    for j, (cry, screen) in enumerate(zip(crystals, screens, strict=True)):
         cry_tth = arm_tth + j * offset
         # accept xrt coordinates
         cry_y = config.R * np.cos(cry_tth)
@@ -106,10 +142,10 @@ def set_crystals(arm_tth, crystals, screens, config):
         screen.z = (0, np.sin(screen_angle), np.cos(screen_angle))
 
 
-def build_beamline(config):
+def build_beamline(config: AnalyzerConfig, sim_config: SimConfig):
     beamLine = raycing.BeamLine(alignE=E_incident)
 
-    df = pd.read_csv(
+    reference_pattern = pd.read_csv(
         fname,
         skiprows=3,
         names=["theta", "I1", "I0"],
@@ -117,7 +153,7 @@ def build_beamline(config):
         skipinitialspace=True,
         index_col=False,
     )
-    delta_phi = np.pi/8
+    delta_phi = np.pi / 8
     beamLine.geometricSource01 = XrdSource(
         bl=beamLine,
         center=[0, 0, 0],
@@ -126,18 +162,18 @@ def build_beamline(config):
         distxprime=r"annulus",
         dxprime=[ring_tth - 5e-3, ring_tth + 5e-3],
         distzprime=r"flat",
-        dzprime=[np.pi/2 - delta_phi, np.pi/2 + delta_phi],
+        dzprime=[np.pi / 2 - delta_phi, np.pi / 2 + delta_phi],
         distE="normal",
         energies=[E_incident, E_incident * 1.4e-4],
-        pattern=df,
-        nrays=500_000,
+        pattern=reference_pattern,
+        nrays=sim_config.nrays,
     )
     # TODO switch to plates
     beamLine.screen_main = rscreens.Screen(
         bl=beamLine, center=[0, 150, r"auto"], name="main"
     )
 
-    for j in range(0, config.N):
+    for j in range(config.N):
         cry_tth = arm_tth + j * config.cry_offset
         # accept xrt coordinates
         cry_y = config.R * np.cos(cry_tth)
@@ -158,6 +194,7 @@ def build_beamline(config):
                 material=crystalSi01,
                 limPhysX=[-config.cry_width / 2, config.cry_width / 2],
                 limPhysY=[-config.cry_depth / 2, config.cry_depth / 2],
+                targetOpenCL=(0, 0),
             ),
         )
         setattr(
@@ -185,21 +222,28 @@ def run_process(beamLine):
         beam=geometricSource01beamGlobal01
     )
 
+    main = rsources_beams.Beam(copyFrom=geometricSource01beamGlobal01)
+
     outDict = {
         "source": geometricSource01beamGlobal01,
         "source_screen": screen01beamLocal01,
     }
 
     for j in range(beamLine.config.N):
-
         oeglobal, oelocal = getattr(beamLine, f"oe{j:02d}").reflect(
             beam=geometricSource01beamGlobal01
         )
+
         outDict[f"cry{j:02d}_local"] = oelocal
         outDict[f"cry{j:02d}_global"] = oeglobal
+        # main = rsources_beams.Beam(copyFrom=geometricSource01beamGlobal01)
+        # main.concatenate(oeglobal)
+        main = oeglobal
+        outDict[f"screen_soure{j:02d}"] = main
         outDict[f"screen{j:02d}"] = getattr(beamLine, f"screen{j:02d}").expose(
-            beam=oeglobal
+            beam=main
         )
+        del main
 
     # prepare flow looks at the locals of this frame so update them
     locals().update(outDict)
@@ -228,8 +272,8 @@ def gen(beamline):
         yield
 
 
-def show_bl(config):
-    bl = build_beamline(config)
+def show_bl(config: AnalyzerConfig, sim_config: SimConfig):
+    bl = build_beamline(config, sim_config)
     rrun.run_process = run_process
     bl.glow(centerAt="screen01", exit_on_close=False, generator=gen, generatorArgs=[bl])
     # bl.glow(scale=[5e3, 10, 5e3], centerAt='xtal1')
@@ -237,33 +281,16 @@ def show_bl(config):
     return bl
 
 
-def define_plots():
-    plots = []
-    return plots
-
-
-def main():
-    beamLine = build_beamline()
-    E0 = list(beamLine.geometricSource01.energies)[0]
-    beamLine.alignE = E0
-    plots = define_plots()
-    xrtrun.run_ray_tracing(plots=plots, backend=r"raycing", beamLine=beamLine)
-
-
-if __name__ == "__main__":
-    main()
-
-bl = show_bl(config)
+bl = show_bl(config, sim_config)
 
 
 def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
     # print(lb.x, lb.y, lb.z, lb.state)
     good = (lb.state == 1) | (lb.state == 2)
     if isScreen:
-        x, y, z = lb.x[good], lb.z[good], lb.y[good]
+        x, y = lb.x[good], lb.z[good]
     else:
-        x, y, z = lb.x[good], lb.y[good], lb.z[good]
-    goodlen = len(lb.x[good])
+        x, y = lb.x[good], lb.y[good]
 
     limits = list((pixel_size * np.array([[-0.5, 0.5]]).T * np.array([shape])).T)
 
@@ -275,8 +302,15 @@ def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
     return hist2d, yedges, xedges
 
 
-def scan(bl, start, stop, delta):
+def scan(
+    bl: raycing.BeamLine,
+    start: float,
+    stop: float,
+    delta: float,
+    detector: DetectorConfig,
+):
     import tqdm
+
     tths = np.linspace(start, stop, int((stop - start) / delta))
     out = {f"screen{screen:02d}": [] for screen in range(bl.config.N)}
     for tth in tqdm.tqdm(tths):
@@ -285,7 +319,16 @@ def scan(bl, start, stop, delta):
         for screen in out:
             lb = outDict[screen]
             # TODO thread detector config through
-            out[screen].append(build_hist(lb)[0].sum(axis=0))
+            out[screen].append(
+                build_hist(
+                    lb,
+                    pixel_size=detector.pitch,
+                    shape=(
+                        int(detector.height // detector.pitch),
+                        detector.transverse_size,
+                    ),
+                )[0].sum(axis=0)
+            )
 
     return {k: np.asarray(v) for k, v in out.items()}, tths
 
@@ -380,9 +423,6 @@ def source_size_scan(bl):
 
 
 def dump(fname, data, tth, config, E, *, tlg="sim"):
-    import h5py
-    from dataclasses import asdict
-
     with h5py.File(fname, "x") as f:
         g = f.create_group(tlg)
         analyzer_config = g.create_group("analyzer_config")
@@ -395,9 +435,6 @@ def dump(fname, data, tth, config, E, *, tlg="sim"):
 
 
 def load(fname, *, tlg="sim"):
-    import h5py
-    from dataclasses import asdict
-
     data = {}
     with h5py.File(fname, "r") as f:
         g = f[tlg]
@@ -420,7 +457,7 @@ def to_photons(data, tths, N, analyzer, detector):
     return np.random.poisson(N * (block / np.max(block)))
 
 
-def reduce(
+def reduce_raw(
     block,
     tths,
     tth_min,
@@ -430,7 +467,7 @@ def reduce(
     detector: DetectorConfig,
     # calibration: AnalyzerCalibration,
 ):
-    multianalyzer.opencl.OclMultiAnalyzer.NUM_CRYSTAL = np.int32(3)
+    multianalyzer.opencl.OclMultiAnalyzer.NUM_CRYSTAL = np.int32(analyzer.N)
     mma = multianalyzer.opencl.OclMultiAnalyzer(
         # sample to crystal
         L=analyzer.R,
@@ -455,7 +492,7 @@ def reduce(
         # TODO pull from calibration structure
         # mis-orientation of the analyzer along y (°)
         rolly=[0.0] * analyzer.N,
-        device=['0']
+        device=["0"],
     )
     return mma.integrate(
         # data all stacked as one
@@ -477,13 +514,15 @@ def reduce(
 
 
 def bench_mark(res, df):
+    import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
-    ax.plot(df.theta, df.I1 / df.I1.max(), label='source', zorder=15, lw=3, ls='--')
+    ax.plot(df.theta, df.I1 / df.I1.max(), label="source", zorder=15, lw=3, ls="--")
     # for j, (I, n) in enumerate(zip(res.signal, res.norm)):
     #     ax.plot(res.tth, I/I.max(), label=f'cry {j}', alpha=.5)
 
     val = res.signal.squeeze().sum(axis=0) / res.norm.sum(axis=0)
     print(val.shape, df.theta.shape)
-    ax.plot(res.tth, val / np.nanmax(val) , label='average', zorder=5, lw=1)
+    ax.plot(res.tth, val / np.nanmax(val), label="average", zorder=5, lw=1)
 
     ax.legend()
