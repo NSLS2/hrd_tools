@@ -75,7 +75,7 @@ class XrdSource(rsources.GeometricSource):
         # TODO trim tth/r
         tth = self._pattern.theta[
             np.searchsorted(I_cumsum, np.random.rand(self.nrays))
-        ].values
+        ].to_numpy()
         r = np.tan(np.deg2rad(tth))
         phi = np.random.uniform(phiMin, phiMax, self.nrays)
         axis1[:] = r * np.cos(phi)
@@ -108,8 +108,8 @@ config = AnalyzerConfig(
     acceptance_angle=0.05651551,
 )
 
-detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=1)
-sim_config = SimConfig(nrays=10_000)
+detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=30)
+sim_config = SimConfig(nrays=100_000)
 E_incident = 29_400
 
 
@@ -236,14 +236,9 @@ def run_process(beamLine):
 
         outDict[f"cry{j:02d}_local"] = oelocal
         outDict[f"cry{j:02d}_global"] = oeglobal
-        # main = rsources_beams.Beam(copyFrom=geometricSource01beamGlobal01)
-        # main.concatenate(oeglobal)
-        main = oeglobal
-        outDict[f"screen_soure{j:02d}"] = main
         outDict[f"screen{j:02d}"] = getattr(beamLine, f"screen{j:02d}").expose(
-            beam=main
+            beam=oeglobal
         )
-        del main
 
     # prepare flow looks at the locals of this frame so update them
     locals().update(outDict)
@@ -302,35 +297,77 @@ def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
     return hist2d, yedges, xedges
 
 
+def get_frames(
+    detector_config: DetectorConfig,
+    screen_beams: dict[str, rsources_beams.Beam],
+    *,
+    isScreen: bool = True,
+):
+    shape = (
+        int(detector_config.height // detector_config.pitch),
+        detector_config.transverse_size,
+    )
+
+    limits = list(
+        (detector_config.pitch * np.array([[-0.5, 0.5]]).T * np.array([shape])).T
+    )
+
+    states = np.vstack([v.state for v in screen_beams.values()])
+    (free_rays,) = np.where((states == 3).sum(axis=0) == len(screen_beams))
+
+    out = {}
+
+    for k, lb in screen_beams.items():
+        # print(lb.x, lb.y, lb.z, lb.state)
+        inner = {}
+        for kt, good in zip(
+            ("good", "bad"),
+            (((lb.state == 1) | (lb.state == 2)), free_rays),
+            strict=True,
+        ):
+            if isScreen:
+                x, y = lb.x[good], lb.z[good]
+            else:
+                x, y = lb.x[good], lb.y[good]
+
+            flux = lb.Jss[good] + lb.Jpp[good]
+            hist2d, yedges, xedges = np.histogram2d(
+                y, x, bins=shape, range=limits, weights=flux
+            )
+            inner[kt] = hist2d
+        out[k] = inner
+
+    return out, yedges, xedges
+
+
 def scan(
     bl: raycing.BeamLine,
     start: float,
     stop: float,
     delta: float,
-    detector: DetectorConfig,
+    detector_config: DetectorConfig,
 ):
     import tqdm
-
+    start, stop, delta = np.deg2rad([start, stop, delta])
     tths = np.linspace(start, stop, int((stop - start) / delta))
-    out = {f"screen{screen:02d}": [] for screen in range(bl.config.N)}
+    good = {f"screen{screen:02d}": [] for screen in range(bl.config.N)}
+    bad = {f"screen{screen:02d}": [] for screen in range(bl.config.N)}
     for tth in tqdm.tqdm(tths):
         move_arm(bl, tth)
         outDict = run_process(bl)
-        for screen in out:
-            lb = outDict[screen]
-            # TODO thread detector config through
-            out[screen].append(
-                build_hist(
-                    lb,
-                    pixel_size=detector.pitch,
-                    shape=(
-                        int(detector.height // detector.pitch),
-                        detector.transverse_size,
-                    ),
-                )[0].sum(axis=0)
-            )
+        images, *rest = get_frames(
+            detector_config,
+            {k: v for k, v in outDict.items() if k.startswith("screen0")},
+        )
+        for k, v in images.items():
+            good[k].append(v["good"])
+            bad[k].append(v["bad"])
 
-    return {k: np.asarray(v) for k, v in out.items()}, tths
+    return (
+        {k: np.asarray(v) for k, v in good.items()},
+        {k: np.asarray(v) for k, v in bad.items()},
+        tths,
+    )
 
 
 def show2(data, tth, *, N=None):
@@ -526,3 +563,14 @@ def bench_mark(res, df):
     ax.plot(res.tth, val / np.nanmax(val), label="average", zorder=5, lw=1)
 
     ax.legend()
+
+
+def overlay(screen):
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+
+    ax.imshow(screen["bad"], aspect="auto", cmap="gray_r")
+    ax.imshow(screen["good"], aspect="auto", alpha=0.5)
+
+# res = scan(bl, 7, 8, 1e-4, detector_config)
