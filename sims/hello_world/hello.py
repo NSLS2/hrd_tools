@@ -10,7 +10,9 @@ import multianalyzer.opencl
 
 
 import xrt.backends.raycing as raycing
+import xrt.backends.raycing.apertures as rapertures
 import xrt.backends.raycing.materials as rmats
+import xrt.backends.raycing.materials_crystals as rmats_cry
 import xrt.backends.raycing.oes as roes
 import xrt.backends.raycing.run as rrun
 import xrt.backends.raycing.screens as rscreens
@@ -84,7 +86,77 @@ class XrdSource(rsources.GeometricSource):
 
 # because xrt.glow has a regex on the str of the type
 XrdSource.__module__ = rsources.GeometricSource.__module__
+
+
+class RectangularBeamstop(rapertures.RectangularAperture):
+    def propagate(self, beam=None, needNewGlobal=False):
+        """Assigns the "lost" value to *beam.state* array for the rays
+        intercepted by the aperture. The "lost" value is
+        ``-self.ordinalNum - 1000.``
+
+
+        .. Returned values: beamLocal
+        """
+        import inspect
+
+        import xrt.backends.raycing.sources as rs
+
+        if self.bl is not None:
+            self.bl.auto_align(self, beam)
+        good = beam.state > 0
+        # beam in local coordinates
+        lo = rs.Beam(copyFrom=beam)
+        bl = self.bl if self.xyz == "auto" else self.xyz
+        raycing.global_to_virgin_local(bl, beam, lo, self.center, good)
+        path = -lo.y[good] / lo.b[good]
+        lo.x[good] += lo.a[good] * path
+        lo.z[good] += lo.c[good] * path
+        lo.path[good] += path
+
+        badIndices = np.zeros(len(beam.x), dtype=bool)
+        for akind, d in zip(self.kind, self.opening, strict=True):
+            if akind.startswith("l"):
+                badIndices[good] = badIndices[good] | (lo.x[good] < d)
+            elif akind.startswith("r"):
+                badIndices[good] = badIndices[good] | (lo.x[good] > d)
+            elif akind.startswith("b"):
+                badIndices[good] = badIndices[good] | (lo.z[good] < d)
+            elif akind.startswith("t"):
+                badIndices[good] = badIndices[good] | (lo.z[good] > d)
+        beam.state[~badIndices] = self.lostNum
+        lo.state[:] = beam.state
+        lo.y[good] = 0.0
+
+        if hasattr(lo, "Es"):
+            propPhase = np.exp(1e7j * (lo.E[good] / rapertures.CHBAR) * path)
+            lo.Es[good] *= propPhase
+            lo.Ep[good] *= propPhase
+
+        goodN = lo.state > 0
+        try:
+            self.spotLimits = [
+                min(self.spotLimits[0], lo.x[goodN].min()),
+                max(self.spotLimits[1], lo.x[goodN].max()),
+                min(self.spotLimits[2], lo.z[goodN].min()),
+                max(self.spotLimits[3], lo.z[goodN].max()),
+            ]
+        except ValueError:
+            pass
+
+        if self.alarmLevel is not None:
+            raycing.check_alarm(self, good, beam)
+        if needNewGlobal:
+            glo = rs.Beam(copyFrom=lo)
+            raycing.virgin_local_to_global(self.bl, glo, self.center, good)
+            raycing.append_to_flow(self.propagate, [glo, lo], inspect.currentframe())
+            return glo, lo
+        else:
+            raycing.append_to_flow(self.propagate, [lo], inspect.currentframe())
+            return lo
+
+
 crystalSi01 = rmats.CrystalSi(t=1)
+Fe = rmats_cry.Iron(t=2)
 
 arm_tth = 0.2  # 0135
 
@@ -107,8 +179,16 @@ config = AnalyzerConfig(
     N=5,
     acceptance_angle=0.05651551,
 )
-
-detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=30)
+config_sirius = AnalyzerConfig(
+    R=425,
+    Rd=370,
+    cry_offset=np.deg2rad(2),
+    cry_width=30,    # transverse
+    cry_depth=50,
+    N=8,
+    acceptance_angle=0.05651551,
+)
+detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=1)
 sim_config = SimConfig(nrays=100_000)
 E_incident = 29_400
 
@@ -117,9 +197,11 @@ ring_tth = np.deg2rad(15)
 theta_b = crystalSi01.get_Bragg_angle(E_incident)
 
 
-def set_crystals(arm_tth, crystals, screens, config):
+def set_crystals(arm_tth, crystals, baffles, screens, config):
     offset = config.cry_offset
-    for j, (cry, screen) in enumerate(zip(crystals, screens, strict=True)):
+    for j, (cry, baffle, screen) in enumerate(
+        zip(crystals, baffles, screens, strict=True)
+    ):
         cry_tth = arm_tth + j * offset
         # accept xrt coordinates
         cry_y = config.R * np.cos(cry_tth)
@@ -130,6 +212,21 @@ def set_crystals(arm_tth, crystals, screens, config):
         cry.pitch = pitch
 
         theta_pp = theta_b + pitch
+
+        baffle_tth = arm_tth + (j - 0.5) * offset
+        baffle_pitch = 2 * theta_b - baffle_tth
+
+        baffle_y = (
+            config.R * np.cos(baffle_tth) + config.Rd / 2 * np.cos(baffle_pitch),
+        )
+        baffle_z = config.R * np.sin(baffle_tth) - config.Rd / 2 * np.sin(baffle_pitch)
+
+        baffle.center = [0, baffle_y, baffle_z]
+        baffle.z = (
+            0,
+            np.sin(baffle_pitch - np.pi / 2),
+            np.cos(baffle_pitch - np.pi / 2),
+        )
 
         screen.center = [
             0,
@@ -143,7 +240,7 @@ def set_crystals(arm_tth, crystals, screens, config):
 
 
 def build_beamline(config: AnalyzerConfig, sim_config: SimConfig):
-    beamLine = raycing.BeamLine(alignE=E_incident)
+    beamLine = raycing.BeamLine()  # alignE=E_incident)
 
     reference_pattern = pd.read_csv(
         fname,
@@ -179,7 +276,17 @@ def build_beamline(config: AnalyzerConfig, sim_config: SimConfig):
         cry_y = config.R * np.cos(cry_tth)
         cry_z = config.R * np.sin(cry_tth)
 
-        pitch = (-cry_tth + theta_b,)
+        # TODO These are all wrong but are fixed up by set_crystals
+        pitch = -cry_tth + theta_b
+
+        baffle_tth = arm_tth + (j + 0.5) * config.cry_offset
+        baffle_pitch = np.pi / 4 - (2 * theta_b - baffle_tth)
+
+        baffle_y = (
+            config.R * np.cos(baffle_tth) + config.Rd / 2 * np.cos(baffle_pitch),
+        )
+        baffle_z = config.R * np.sin(baffle_tth) - config.Rd / 2 * np.sin(baffle_pitch)
+
         theta_pp = np.pi / 4 - (2 * theta_b - cry_tth)
 
         setattr(
@@ -194,7 +301,20 @@ def build_beamline(config: AnalyzerConfig, sim_config: SimConfig):
                 material=crystalSi01,
                 limPhysX=[-config.cry_width / 2, config.cry_width / 2],
                 limPhysY=[-config.cry_depth / 2, config.cry_depth / 2],
-                targetOpenCL=(0, 0),
+            ),
+        )
+        setattr(
+            beamLine,
+            f"baffle{j:02d}",
+            RectangularBeamstop(
+                name=f"baffle{j:02d}",
+                bl=beamLine,
+                opening=[
+                    -config.cry_width / 2,
+                    config.cry_width / 2,
+                    -0.7 * config.Rd / 2,
+                    0.7 * config.Rd / 2,
+                ],
             ),
         )
         setattr(
@@ -205,7 +325,7 @@ def build_beamline(config: AnalyzerConfig, sim_config: SimConfig):
                 center=[
                     0,
                     cry_y + config.Rd * np.cos(theta_pp),
-                    cry_z - 0 * config.Rd * np.sin(theta_pp),
+                    cry_z - config.Rd * np.sin(theta_pp),
                 ],
                 x=(1, 0, 0),
             ),
@@ -233,9 +353,13 @@ def run_process(beamLine):
         oeglobal, oelocal = getattr(beamLine, f"oe{j:02d}").reflect(
             beam=geometricSource01beamGlobal01
         )
-
         outDict[f"cry{j:02d}_local"] = oelocal
         outDict[f"cry{j:02d}_global"] = oeglobal
+
+        outDict[f"baffle{j:0d}_local"] = getattr(beamLine, f"baffle{j:02d}").propagate(
+            beam=oeglobal
+        )
+
         outDict[f"screen{j:02d}"] = getattr(beamLine, f"screen{j:02d}").expose(
             beam=oeglobal
         )
@@ -251,7 +375,9 @@ rrun.run_process = run_process
 
 
 def move_arm(beamline, tth):
-    set_crystals(tth, beamline.oes, beamline.screens[1:], beamline.config)
+    crystals = [oe for oe in beamline.oes if oe.name.startswith("cry")]
+    baffles = [oe for oe in beamline.slits if oe.name.startswith("baffle")]
+    set_crystals(tth, crystals, baffles, beamline.screens[1:], beamline.config)
 
 
 def gen(beamline):
@@ -313,8 +439,9 @@ def get_frames(
     )
 
     states = np.vstack([v.state for v in screen_beams.values()])
-    (free_rays,) = np.where((states == 3).sum(axis=0) == len(screen_beams))
-
+    (free_ray_indx,) = np.where((states == 3).sum(axis=0) == len(screen_beams))
+    free_rays = np.zeros(states.shape[1], dtype=bool)
+    free_rays[free_ray_indx] = True
     out = {}
 
     for k, lb in screen_beams.items():
@@ -348,6 +475,7 @@ def scan(
     detector_config: DetectorConfig,
 ):
     import tqdm
+
     start, stop, delta = np.deg2rad([start, stop, delta])
     tths = np.linspace(start, stop, int((stop - start) / delta))
     good = {f"screen{screen:02d}": [] for screen in range(bl.config.N)}
@@ -573,4 +701,5 @@ def overlay(screen):
     ax.imshow(screen["bad"], aspect="auto", cmap="gray_r")
     ax.imshow(screen["good"], aspect="auto", alpha=0.5)
 
-# res = scan(bl, 7, 8, 1e-4, detector_config)
+
+# res = scan(bl, 7.6, 8.2, 1e-3, detector_config)
