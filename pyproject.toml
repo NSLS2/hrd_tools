@@ -130,6 +130,8 @@ lint.extend-ignore = [
   "PLR",    # Design related pylint codes
   "E501",   # Line too long
   "ISC001", # implicit concat
+  "RET505", # return in else
+  "SIM105", # contextlib.supress rather than try...except
 ]
 src = ["src"]
 lint.unfixable = [
