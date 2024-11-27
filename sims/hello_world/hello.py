@@ -1,5 +1,6 @@
+from dataclasses import asdict, fields, is_dataclass
+
 import numpy as np
-import pandas as pd
 import h5py
 
 
@@ -9,8 +10,6 @@ import multianalyzer.opencl
 import xrt.backends.raycing as raycing
 
 
-import xrt.backends.raycing.materials_crystals as rmats_cry
-
 import xrt.backends.raycing.run as rrun
 
 import xrt.backends.raycing.sources_beams as rsources_beams
@@ -18,8 +17,6 @@ import xrt.backends.raycing.sources_beams as rsources_beams
 from bad_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
 from bad_tools.xrt.endstation import Endstation
 
-
-Fe = rmats_cry.Iron(t=2)
 
 # copy ESRF geometry as baseline
 config_mac = AnalyzerConfig(
@@ -29,16 +26,6 @@ config_mac = AnalyzerConfig(
     cry_width=102,
     cry_depth=54,
     N=3,
-    acceptance_angle=0.05651551,
-    thickness=1,
-)
-config = AnalyzerConfig(
-    R=300,
-    Rd=115,
-    cry_offset=np.deg2rad(3),
-    cry_width=102,
-    cry_depth=54,
-    N=5,
     acceptance_angle=0.05651551,
     thickness=1,
 )
@@ -52,8 +39,19 @@ config_sirius = AnalyzerConfig(
     acceptance_angle=0.05651551,
     thickness=1,
 )
+
+config = AnalyzerConfig(
+    R=300,
+    Rd=115,
+    cry_offset=np.deg2rad(2.5),
+    cry_width=102,
+    cry_depth=54,
+    N=3,
+    acceptance_angle=0.05651551,
+    thickness=1,
+)
 detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=1)
-sim_config = SimConfig(nrays=100_000)
+sim_config = SimConfig(nrays=1_000_000)
 
 source_config = SourceConfig(
     E_incident=29_400,
@@ -66,60 +64,56 @@ source_config = SourceConfig(
 )
 
 
-def run_process(beamLine):
-    # "raw" beam
-    geometricSource01beamGlobal01 = beamLine.geometricSource01.shine()
-    screen01beamLocal01 = beamLine.screen_main.expose(
-        beam=geometricSource01beamGlobal01
-    )
-
-    main = rsources_beams.Beam(copyFrom=geometricSource01beamGlobal01)
-
-    outDict = {
-        "source": geometricSource01beamGlobal01,
-        "source_screen": screen01beamLocal01,
-    }
-
-    for j in range(beamLine.config.N):
-        oeglobal, oelocal = getattr(beamLine, f"oe{j:02d}").reflect(
+def show_bl(bl: Endstation):
+    def run_process(beamLine):
+        # "raw" beam
+        geometricSource01beamGlobal01 = beamLine.geometricSource01.shine()
+        screen01beamLocal01 = beamLine.screen_main.expose(
             beam=geometricSource01beamGlobal01
         )
-        outDict[f"cry{j:02d}_local"] = oelocal
-        outDict[f"cry{j:02d}_global"] = oeglobal
 
-        outDict[f"baffle{j:0d}_local"] = getattr(beamLine, f"baffle{j:02d}").propagate(
-            beam=oeglobal
-        )
+        main = rsources_beams.Beam(copyFrom=geometricSource01beamGlobal01)
 
-        outDict[f"screen{j:02d}"] = getattr(beamLine, f"screen{j:02d}").expose(
-            beam=oeglobal
-        )
+        outDict = {
+            "source": geometricSource01beamGlobal01,
+            "source_screen": screen01beamLocal01,
+        }
+        N = len([oe for oe in beamLine.oes if oe.name.startswith("cry")])
 
-    # prepare flow looks at the locals of this frame so update them
-    locals().update(outDict)
-    beamLine.prepare_flow()
+        for j in range(N):
+            oeglobal, oelocal = getattr(beamLine, f"oe{j:02d}").reflect(
+                beam=geometricSource01beamGlobal01
+            )
+            outDict[f"cry{j:02d}_local"] = oelocal
+            outDict[f"cry{j:02d}_global"] = oeglobal
 
-    return outDict
+            outDict[f"baffle{j:0d}_local"] = getattr(
+                beamLine, f"baffle{j:02d}"
+            ).propagate(beam=oeglobal)
 
+            outDict[f"screen{j:02d}"] = getattr(beamLine, f"screen{j:02d}").expose(
+                beam=oeglobal
+            )
 
-rrun.run_process = run_process
+        # prepare flow looks at the locals of this frame so update them
+        locals().update(outDict)
+        beamLine.prepare_flow()
 
+        return outDict
 
-def gen(beamline: Endstation):
-    ring_tth = np.deg2rad(10)
-    start = ring_tth - (beamline.analyzer.N - 1) * beamline.analyzer.cry_offset
-    tths = np.linspace(start, ring_tth, 128)
-    beamline.set_arm(tths[30])
-    # beamline.screen_main.name = f"{tth:.4f}"
-    yield
-    for j, tth in enumerate(tths):
+    def gen(beamline: Endstation):
+        ring_tth = np.deg2rad(10)
+        start = ring_tth - (beamline.analyzer.N - 1) * beamline.analyzer.cry_offset
+        tths = np.linspace(start, ring_tth, 128)
+        beamline.set_arm(tths[30])
         # beamline.screen_main.name = f"{tth:.4f}"
-        beamline.set_arm(tth)
-        beamline.bl.glowFrameName = f"/tmp/frame_{j:04d}.png"
         yield
+        for j, tth in enumerate(tths):
+            # beamline.screen_main.name = f"{tth:.4f}"
+            beamline.set_arm(tth)
+            beamline.bl.glowFrameName = f"/tmp/frame_{j:04d}.png"
+            yield
 
-
-def show_bl(bl: Endstation):
     rrun.run_process = run_process
     bl.bl.glow(
         centerAt="screen01", exit_on_close=False, generator=gen, generatorArgs=[bl]
@@ -129,7 +123,7 @@ def show_bl(bl: Endstation):
 
 
 bl = Endstation.from_configs(config, source_config, detector_config, sim_config)
-show_bl(bl)
+# show_bl(bl)
 
 
 def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
@@ -150,70 +144,21 @@ def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
     return hist2d, yedges, xedges
 
 
-def get_frames(
-    detector_config: DetectorConfig,
-    screen_beams: dict[str, rsources_beams.Beam],
-    *,
-    isScreen: bool = True,
-):
-    shape = (
-        int(detector_config.height // detector_config.pitch),
-        detector_config.transverse_size,
-    )
-
-    limits = list(
-        (detector_config.pitch * np.array([[-0.5, 0.5]]).T * np.array([shape])).T
-    )
-
-    states = np.vstack([v.state for v in screen_beams.values()])
-    (free_ray_indx,) = np.where((states == 3).sum(axis=0) == len(screen_beams))
-    free_rays = np.zeros(states.shape[1], dtype=bool)
-    free_rays[free_ray_indx] = True
-    out = {}
-
-    for k, lb in screen_beams.items():
-        # print(lb.x, lb.y, lb.z, lb.state)
-        inner = {}
-        for kt, good in zip(
-            ("good", "bad"),
-            (((lb.state == 1) | (lb.state == 2)), free_rays),
-            strict=True,
-        ):
-            if isScreen:
-                x, y = lb.x[good], lb.z[good]
-            else:
-                x, y = lb.x[good], lb.y[good]
-
-            flux = lb.Jss[good] + lb.Jpp[good]
-            hist2d, yedges, xedges = np.histogram2d(
-                y, x, bins=shape, range=limits, weights=flux
-            )
-            inner[kt] = hist2d
-        out[k] = inner
-
-    return out, yedges, xedges
-
-
 def scan(
-    bl: raycing.BeamLine,
+    bl: Endstation,
     start: float,
     stop: float,
     delta: float,
-    detector_config: DetectorConfig,
 ):
     import tqdm
 
     start, stop, delta = np.deg2rad([start, stop, delta])
     tths = np.linspace(start, stop, int((stop - start) / delta))
-    good = {f"screen{screen:02d}": [] for screen in range(bl.config.N)}
-    bad = {f"screen{screen:02d}": [] for screen in range(bl.config.N)}
+    good = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
+    bad = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
     for tth in tqdm.tqdm(tths):
-        move_arm(bl, tth)
-        outDict = run_process(bl)
-        images, *rest = get_frames(
-            detector_config,
-            {k: v for k, v in outDict.items() if k.startswith("screen0")},
-        )
+        bl.set_arm(tth)
+        images, *rest = bl.get_frames()
         for k, v in images.items():
             good[k].append(v["good"])
             bad[k].append(v["bad"])
@@ -294,16 +239,6 @@ def show(data, tths, *, N=None):
     ax.set_ylabel(r"arm 2$\theta$ [rad]")
 
 
-def scan_and_plot(bl, tths):
-    data, _ = scan(bl, tths)
-    show(data, tths)
-
-
-def demo():
-    a, tths = scan(bl, ring_tth - 100e-4, ring_tth + 75e-4, 5e-5)
-    show(a, tths)
-
-
 def source_size_scan(bl):
     out = []
     widths = np.logspace(-2, 1, 16, base=10)
@@ -314,16 +249,19 @@ def source_size_scan(bl):
     return widths, tths, np.array(out)
 
 
-def dump(fname, data, tth, config, E, *, tlg="sim"):
+def dump(fname, data, tth, bl, *, tlg="sim"):
     with h5py.File(fname, "x") as f:
         g = f.create_group(tlg)
-        analyzer_config = g.create_group("analyzer_config")
-        analyzer_config.attrs.update(asdict(config))
-        g.attrs["E"] = E
+        for fld in fields(bl):
+            if is_dataclass(fld.type):
+                cfg_g = g.create_group(f"{fld.name}_config")
+                cfg_g.attrs.update(asdict(getattr(bl, fld.name)))
 
         g["tth"] = tth
-        for k, v in data.items():
-            g.create_dataset(k, data=v, chunks=True, shuffle=True)
+
+        g.create_dataset(
+            "block", data=to_block(data), chunks=True, shuffle=True, compression="gzip"
+        )
 
 
 def load(fname, *, tlg="sim"):
@@ -339,6 +277,13 @@ def load(fname, *, tlg="sim"):
         tths = g["tth"][:]
 
     return data, tths, config, E
+
+
+def to_block(data, *, sum_col=True):
+    block = np.stack([v for k, v in sorted(data.items())], axis=1)
+    if sum_col:
+        block = block.sum(axis=2, keepdims=True)
+    return block
 
 
 def to_photons(data, tths, N, analyzer, detector):
@@ -357,10 +302,13 @@ def reduce_raw(
     dtth,
     analyzer: AnalyzerConfig,
     detector: DetectorConfig,
+    phi_max: float = 90,
     # calibration: AnalyzerCalibration,
 ):
-    multianalyzer.opencl.OclMultiAnalyzer.NUM_CRYSTAL = np.int32(analyzer.N)
-    mma = multianalyzer.opencl.OclMultiAnalyzer(
+    cls = multianalyzer.MultiAnalyzer
+    # cls = multianalyzer.opencl.OclMultiAnalyzer
+    # cls.NUM_CRYSTAL = np.int32(analyzer.N)
+    mma = cls(
         # sample to crystal
         L=analyzer.R,
         # crystal to detector
@@ -384,7 +332,6 @@ def reduce_raw(
         # TODO pull from calibration structure
         # mis-orientation of the analyzer along y (°)
         rolly=[0.0] * analyzer.N,
-        device=["0"],
     )
     return mma.integrate(
         # data all stacked as one
@@ -402,6 +349,7 @@ def reduce_raw(
         num_col=1,
         # how to understand the shape of roicollection
         columnorder=1,
+        phi_max=phi_max,
     )
 
 

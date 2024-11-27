@@ -10,6 +10,7 @@ import xrt.backends.raycing as raycing
 import xrt.backends.raycing.screens as rscreens
 import xrt.backends.raycing.oes as roes
 import xrt.backends.raycing.materials as rmats
+import xrt.backends.raycing.sources_beams as rsources_beams
 
 from bad_tools.config import AnalyzerConfig, SimConfig, SourceConfig, DetectorConfig
 from bad_tools.xrt.sources import XrdSource
@@ -153,7 +154,6 @@ class Endstation:
         return [oe for oe in self.bl.slits if oe.name.startswith("baffle")]
 
     def set_arm(self, arm_tth: float):
-        # def set_crystals(arm_tth: float, crystals, baffles, screens, config: AnalyzerConfig):
         config = self.analyzer
         crystals = self.crystals
         baffles = self.baffles
@@ -202,6 +202,80 @@ class Endstation:
             screen_angle = theta_pp
 
             screen.z = (0, np.sin(screen_angle), np.cos(screen_angle))
+
+    def run_process(self):
+        # "raw" beam
+        beamLine = self.bl
+        geometricSource01beamGlobal01 = beamLine.geometricSource01.shine()
+        screen01beamLocal01 = beamLine.screen_main.expose(
+            beam=geometricSource01beamGlobal01
+        )
+
+        outDict = {
+            "source": geometricSource01beamGlobal01,
+            "source_screen": screen01beamLocal01,
+        }
+        N = len([oe for oe in beamLine.oes if oe.name.startswith("cry")])
+
+        for j in range(N):
+            oeglobal, oelocal = getattr(beamLine, f"oe{j:02d}").reflect(
+                beam=geometricSource01beamGlobal01
+            )
+            outDict[f"cry{j:02d}_local"] = oelocal
+            outDict[f"cry{j:02d}_global"] = oeglobal
+
+            outDict[f"baffle{j:0d}_local"] = getattr(
+                beamLine, f"baffle{j:02d}"
+            ).propagate(beam=oeglobal)
+
+            outDict[f"screen{j:02d}"] = getattr(beamLine, f"screen{j:02d}").expose(
+                beam=oeglobal
+            )
+
+        return {k: v for k, v in outDict.items() if k.startswith("screen")}
+
+    def get_frames(self):
+        detector_config = self.detector
+        screen_beams = self.run_process()
+
+        isScreen = True
+
+        shape = (
+            int(detector_config.height // detector_config.pitch),
+            detector_config.transverse_size,
+        )
+
+        limits = list(
+            (detector_config.pitch * np.array([[-0.5, 0.5]]).T * np.array([shape])).T
+        )
+
+        states = np.vstack([v.state for v in screen_beams.values()])
+        (free_ray_indx,) = np.where((states == 3).sum(axis=0) == len(screen_beams))
+        free_rays = np.zeros(states.shape[1], dtype=bool)
+        free_rays[free_ray_indx] = True
+        out = {}
+
+        for k, lb in screen_beams.items():
+            # print(lb.x, lb.y, lb.z, lb.state)
+            inner = {}
+            for kt, good in zip(
+                ("good", "bad"),
+                (((lb.state == 1) | (lb.state == 2)), free_rays),
+                strict=True,
+            ):
+                if isScreen:
+                    x, y = lb.x[good], lb.z[good]
+                else:
+                    x, y = lb.x[good], lb.y[good]
+
+                flux = lb.Jss[good] + lb.Jpp[good]
+                hist2d, yedges, xedges = np.histogram2d(
+                    y, x, bins=shape, range=limits, weights=flux
+                )
+                inner[kt] = hist2d
+            out[k] = inner
+
+        return out, yedges, xedges
 
 
 @functools.lru_cache(50)
