@@ -22,7 +22,7 @@ def scan_to_file(
     start, stop, delta = np.deg2rad([start, stop, delta])
     N = int((stop - start) / delta)
     tths = np.linspace(start, stop, N)
-    for batch in tqdm.tqdm(range(len(tths) // N + 1)):
+    for batch in tqdm.tqdm(range(len(tths) // cache_rate + 1)):
         batch_tth = tths[batch * cache_rate : (batch + 1) * cache_rate]
         good = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
         # bad = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
