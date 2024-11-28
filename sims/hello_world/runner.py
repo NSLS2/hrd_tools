@@ -103,6 +103,7 @@ if __name__ == "__main__":
     from pathlib import Path
 
     parser = argparse.ArgumentParser(description="Run some sims.")
+    parser.add_argument("fin", help="File to read pattern from.", type=Path)
     parser.add_argument("fout", help="File to write results to.", type=Path)
     parser.add_argument("start", help="start angle in deg", type=float)
     parser.add_argument("stop", help="stop angle in deg", type=float)
@@ -114,7 +115,11 @@ if __name__ == "__main__":
         default=10_000,
     )
     args = parser.parse_args()
-
+    fin = args.fin.resolve()
+    if not fin.exists():
+        msg = "pattern source does not exist"
+        raise ValueError(msg)
+    print(fin)
     args.fout.parent.mkdir(parents=True, exist_ok=True)
     config = AnalyzerConfig(
         R=300,
@@ -131,7 +136,7 @@ if __name__ == "__main__":
 
     source_config = SourceConfig(
         E_incident=29_400,
-        pattern_path="/home/tcaswell/Downloads/11bmb_7871_Y1.xye",
+        pattern_path=str(fin),
         dx=1,
         dz=0.1,
         dy=0,
