@@ -27,7 +27,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = ["multianalyzer @ git+https://github.com/kif/multianalyzer.git", "xrt @ git+https://github.com/kklmn/xrt.git"]
+dependencies = ["multianalyzer @ git+https://github.com/kif/multianalyzer.git", "xrt @ git+https://github.com/kklmn/xrt.git", "xontrib-jedi", "xontrib-vox"]
 
 [project.optional-dependencies]
 test = [
@@ -170,3 +170,4 @@ bluesky = ">=1.13.0a3,<2"
 pyopencl = ">=2024.3,<2025"
 pyopengl = ">=3.1.6,<4"
 ipython = ">=8.29.0,<9"
+xonsh = "*"
