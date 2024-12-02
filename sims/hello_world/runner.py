@@ -132,7 +132,7 @@ if __name__ == "__main__":
         thickness=1,
     )
     detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=1)
-    sim_config = SimConfig(nrays=1_000_000)
+    sim_config = SimConfig(nrays=100_000)
 
     source_config = SourceConfig(
         E_incident=29_400,
