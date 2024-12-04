@@ -148,6 +148,10 @@ exclude = []
 "tests/**" = ["T20"]
 "noxfile.py" = ["T20"]
 
+[tool.pixi.system-requirements]
+linux="3.10"
+libc="2.17"
+
 [tool.pixi.project]
 channels = ["conda-forge"]
 platforms = ["linux-64"]
