@@ -1,5 +1,5 @@
-from dataclasses import asdict, fields, is_dataclass
-
+from dataclasses import asdict, fields, is_dataclass, dataclass
+import tomllib
 
 import numpy as np
 import h5py
@@ -9,17 +9,24 @@ from bad_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceCo
 from bad_tools.xrt.endstation import Endstation
 
 
+@dataclass(frozen=True)
+class SimScanConfig:
+    start: float
+    stop: float
+    delta: float
+
+
 def scan_to_file(
     bl: Endstation,
-    start: float,
-    stop: float,
-    delta: float,
+    scan_config: SimScanConfig,
     *,
     writer,
 ):
     cache_rate = writer.send(None)
     writer.send(bl)
-    start, stop, delta = np.deg2rad([start, stop, delta])
+    start, stop, delta = np.deg2rad(
+        [scan_config.start, scan_config.stop, scan_config.delta]
+    )
     N = int((stop - start) / delta)
     tths = np.linspace(start, stop, N)
     for batch in tqdm.tqdm(range(len(tths) // cache_rate + 1)):
@@ -27,7 +34,7 @@ def scan_to_file(
         good = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
         # bad = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
 
-        for tth in tqdm.tqdm(batch_tth):
+        for tth in batch_tth:
             bl.set_arm(tth)
             images, *rest = bl.get_frames()
             for k, v in images.items():
@@ -103,11 +110,10 @@ if __name__ == "__main__":
     from pathlib import Path
 
     parser = argparse.ArgumentParser(description="Run some sims.")
-    parser.add_argument("fin", help="File to read pattern from.", type=Path)
+    parser.add_argument(
+        "config", help="toml to read to get the configuration.", type=Path
+    )
     parser.add_argument("fout", help="File to write results to.", type=Path)
-    parser.add_argument("start", help="start angle in deg", type=float)
-    parser.add_argument("stop", help="stop angle in deg", type=float)
-    parser.add_argument("delta", help="angle steps in deg", type=float)
     parser.add_argument(
         "--cache-rate",
         help="flush to disk every this number of angles",
@@ -115,35 +121,27 @@ if __name__ == "__main__":
         default=10_000,
     )
     args = parser.parse_args()
-    fin = args.fin.resolve()
+
+    args.fout.parent.mkdir(parents=True, exist_ok=True)
+
+    class_map = {
+        "source": SourceConfig,
+        "sim": SimConfig,
+        "detector": DetectorConfig,
+        "analyzer": AnalyzerConfig,
+    }
+    with args.config.open("rb") as fin:
+        inp = tomllib.load(fin)
+
+    configs = {k: cls(**inp[k]) for k, cls in class_map.items()}
+    fin = Path(configs["source"].pattern_path).resolve()
+    print(fin)
     if not fin.exists():
         msg = "pattern source does not exist"
         raise ValueError(msg)
     print(fin)
-    args.fout.parent.mkdir(parents=True, exist_ok=True)
-    config = AnalyzerConfig(
-        R=300,
-        Rd=115,
-        cry_offset=np.deg2rad(2.5),
-        cry_width=102,
-        cry_depth=54,
-        N=3,
-        acceptance_angle=0.05651551,
-        thickness=1,
-    )
-    detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=1)
-    sim_config = SimConfig(nrays=100_000)
 
-    source_config = SourceConfig(
-        E_incident=29_400,
-        pattern_path=str(fin),
-        dx=1,
-        dz=0.1,
-        dy=0,
-        delta_phi=np.pi / 8,
-        E_hwhm=1.4e-4,
-    )
-
-    bl = Endstation.from_configs(config, source_config, detector_config, sim_config)
+    bl = Endstation.from_configs(**configs)
     writer = dump_coro(args.fout, args.cache_rate)
-    scan_to_file(bl, args.start, args.stop, args.delta, writer=writer)
+    scan_config = SimScanConfig(**inp["scan"])
+    scan_to_file(bl, scan_config, writer=writer)

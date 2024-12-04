@@ -28,32 +28,32 @@ class Endstation:
     @classmethod
     def from_configs(
         cls,
-        config: AnalyzerConfig,
-        source_config: SourceConfig,
-        detector_config: DetectorConfig,
-        sim_config: SimConfig,
+        analyzer: AnalyzerConfig,
+        source: SourceConfig,
+        detector: DetectorConfig,
+        sim: SimConfig,
     ) -> Self:
-        crystalSi01 = rmats.CrystalSi(t=config.thickness)
+        crystalSi01 = rmats.CrystalSi(t=analyzer.thickness)
 
-        theta_b = _bragg(crystalSi01, source_config.E_incident)
+        theta_b = _bragg(crystalSi01, source.E_incident)
         arm_tth = np.deg2rad(15)
         beamLine = raycing.BeamLine()
 
         reference_pattern = pd.read_csv(
-            source_config.pattern_path,
+            source.pattern_path,
             skiprows=3,
             names=["theta", "I1", "I0"],
             sep=" ",
             skipinitialspace=True,
             index_col=False,
         )
-        delta_phi = source_config.delta_phi
+        delta_phi = source.delta_phi
         beamLine.geometricSource01 = XrdSource(
             bl=beamLine,
             center=[0, 0, 0],
-            dx=source_config.dx,
-            dz=source_config.dz,
-            dy=source_config.dy,
+            dx=source.dx,
+            dz=source.dz,
+            dy=source.dy,
             distxprime=r"annulus",
             # this must be a sequence, but values are ignored
             dxprime=[0, 0],
@@ -61,33 +61,33 @@ class Endstation:
             dzprime=[np.pi / 2 - delta_phi, np.pi / 2 + delta_phi],
             distE="normal",
             energies=[
-                source_config.E_incident,
-                source_config.E_incident * source_config.E_hwhm,
+                source.E_incident,
+                source.E_incident * source.E_hwhm,
             ],
             pattern=reference_pattern,
-            nrays=sim_config.nrays,
+            nrays=sim.nrays,
         )
         # TODO switch to plates
         beamLine.screen_main = rscreens.Screen(
             bl=beamLine, center=[0, 150, r"auto"], name="main"
         )
 
-        for j in range(config.N):
-            cry_tth = arm_tth + j * config.cry_offset
+        for j in range(analyzer.N):
+            cry_tth = arm_tth + j * analyzer.cry_offset
             # accept xrt coordinates
-            cry_y = config.R * np.cos(cry_tth)
-            cry_z = config.R * np.sin(cry_tth)
+            cry_y = analyzer.R * np.cos(cry_tth)
+            cry_z = analyzer.R * np.sin(cry_tth)
 
             # TODO These are all wrong but are fixed up by set_crystals
             pitch = -cry_tth + theta_b
 
-            baffle_tth = arm_tth + (j + 0.5) * config.cry_offset
+            baffle_tth = arm_tth + (j + 0.5) * analyzer.cry_offset
             baffle_pitch = np.pi / 4 - (2 * theta_b - baffle_tth)
 
             baffle_y = (
-                config.R * np.cos(baffle_tth) + config.Rd / 2 * np.cos(baffle_pitch),
+                analyzer.R * np.cos(baffle_tth) + analyzer.Rd / 2 * np.cos(baffle_pitch),
             )
-            baffle_z = config.R * np.sin(baffle_tth) - config.Rd / 2 * np.sin(
+            baffle_z = analyzer.R * np.sin(baffle_tth) - analyzer.Rd / 2 * np.sin(
                 baffle_pitch
             )
 
@@ -103,8 +103,8 @@ class Endstation:
                     pitch=pitch,
                     positionRoll=np.pi,
                     material=crystalSi01,
-                    limPhysX=[-config.cry_width / 2, config.cry_width / 2],
-                    limPhysY=[-config.cry_depth / 2, config.cry_depth / 2],
+                    limPhysX=[-analyzer.cry_width / 2, analyzer.cry_width / 2],
+                    limPhysY=[-analyzer.cry_depth / 2, analyzer.cry_depth / 2],
                 ),
             )
             setattr(
@@ -114,10 +114,10 @@ class Endstation:
                     name=f"baffle{j:02d}",
                     bl=beamLine,
                     opening=[
-                        -config.cry_width / 2,
-                        config.cry_width / 2,
-                        -0.7 * config.Rd / 2,
-                        0.7 * config.Rd / 2,
+                        -analyzer.cry_width / 2,
+                        analyzer.cry_width / 2,
+                        -0.7 * analyzer.Rd / 2,
+                        0.7 * analyzer.Rd / 2,
                     ],
                     center=[0, baffle_y, baffle_z],
                     z=(
@@ -135,15 +135,15 @@ class Endstation:
                     bl=beamLine,
                     center=[
                         0,
-                        cry_y + config.Rd * np.cos(theta_pp),
-                        cry_z - config.Rd * np.sin(theta_pp),
+                        cry_y + analyzer.Rd * np.cos(theta_pp),
+                        cry_z - analyzer.Rd * np.sin(theta_pp),
                     ],
                     x=(1, 0, 0),
                     z=(0, np.sin(screen_angle), np.cos(screen_angle)),
                 ),
             )
 
-        return cls(beamLine, config, source_config, detector_config, sim_config)
+        return cls(beamLine, analyzer, source, detector, sim)
 
     @property
     def crystals(self):

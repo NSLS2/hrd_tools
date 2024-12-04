@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
-
 # TODO look into this game
 # from typing import NewType
 # rad = NewType("rad", float)
