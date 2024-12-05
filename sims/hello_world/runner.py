@@ -1,3 +1,4 @@
+import contextlib
 from dataclasses import asdict, fields, is_dataclass
 import tomllib
 
@@ -22,25 +23,33 @@ def scan_to_file(
     writer,
 ):
     cache_rate = writer.send(None)
-    writer.send(bl)
-    start, stop, delta = np.deg2rad(
-        [scan_config.start, scan_config.stop, scan_config.delta]
-    )
-    N = int((stop - start) / delta)
-    tths = np.linspace(start, stop, N)
-    for batch in tqdm.tqdm(range(len(tths) // cache_rate + 1)):
-        batch_tth = tths[batch * cache_rate : (batch + 1) * cache_rate]
-        good = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
-        # bad = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
+    with contextlib.closing(writer):
+        writer.send(bl)
+        start, stop, delta = np.deg2rad(
+            [scan_config.start, scan_config.stop, scan_config.delta]
+        )
+        N = int((stop - start) / delta)
+        tths = np.linspace(start, stop, N)
+        for batch in tqdm.tqdm(range(len(tths) // cache_rate + 1)):
+            batch_tth = tths[batch * cache_rate : (batch + 1) * cache_rate]
+            good = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
+            # bad = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
 
-        for tth in batch_tth:
-            bl.set_arm(tth)
-            images, *rest = bl.get_frames()
-            for k, v in images.items():
-                good[k].append(v["good"])
-                # bad[k].append(v["bad"])
-        writer.send((batch_tth, to_block(good)))
-    writer.close()
+            try:
+                for j, tth in enumerate(batch_tth):  # noqa: B007
+                    bl.set_arm(tth)
+                    images, *rest = bl.get_frames()
+                    for k, v in images.items():
+                        good[k].append(v["good"])
+                        # bad[k].append(v["bad"])
+            except KeyboardInterrupt:
+                if j > 0:
+                    writer.send(
+                        (batch_tth[:j], to_block({k: v[:j] for k, v in good.items()}))
+                    )
+                raise
+            else:
+                writer.send((batch_tth, to_block(good)))
 
 
 def dump_coro(fname, cache_rate, *, tlg="sim"):
@@ -71,6 +80,10 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
         payload = yield
         with h5py.File(fname, "a") as f:
             g = f[tlg]
+
+            if payload[0].shape[0] != payload[1].shape[0]:
+                print(f"{payload[0].shape[0]} == {payload[1].shape[0]}")
+            assert payload[0].shape[0] == payload[1].shape[0]
             for name, data in zip(("tth", "block"), payload, strict=True):
                 ds = g[name]
                 cur_len = ds.shape[0]
