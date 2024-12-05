@@ -1,17 +1,17 @@
 import contextlib
 from dataclasses import asdict, fields, is_dataclass
-import tomllib
 
-import numpy as np
 import h5py
+import numpy as np
+import tomllib
 import tqdm
 
 from bad_tools.config import (
     AnalyzerConfig,
     DetectorConfig,
     SimConfig,
-    SourceConfig,
     SimScanConfig,
+    SourceConfig,
 )
 from bad_tools.xrt.endstation import Endstation
 

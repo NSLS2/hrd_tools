@@ -1,22 +1,13 @@
 from dataclasses import asdict, fields, is_dataclass
 
-import numpy as np
 import h5py
-
-
 import multianalyzer.opencl
-
-
-import xrt.backends.raycing as raycing
-
-
+import numpy as np
 import xrt.backends.raycing.run as rrun
-
 import xrt.backends.raycing.sources_beams as rsources_beams
 
 from bad_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
 from bad_tools.xrt.endstation import Endstation
-
 
 # copy ESRF geometry as baseline
 config_mac = AnalyzerConfig(
@@ -171,8 +162,8 @@ def scan(
 
 
 def show2(data, tth, *, N=None):
-    import matplotlib.pyplot as plt
     import matplotlib as mpl
+    import matplotlib.pyplot as plt
 
     tth = np.rad2deg(tth)
 
