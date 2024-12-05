@@ -1,4 +1,4 @@
-from dataclasses import asdict, fields, is_dataclass, dataclass
+from dataclasses import asdict, fields, is_dataclass
 import tomllib
 
 import numpy as np
@@ -44,9 +44,7 @@ def scan_to_file(
 
 
 def dump_coro(fname, cache_rate, *, tlg="sim"):
-    print("a")
     bl = yield cache_rate
-    print(f"{bl=}")
     with h5py.File(fname, "x") as f:
         g = f.create_group(tlg)
         for fld in fields(bl):
@@ -69,7 +67,6 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
             shuffle=True,
             compression="gzip",
         )
-    print(f"{fname=}")
     while True:
         payload = yield
         with h5py.File(fname, "a") as f:
@@ -77,7 +74,6 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
             for name, data in zip(("tth", "block"), payload, strict=True):
                 ds = g[name]
                 cur_len = ds.shape[0]
-                print(f"{data=}")
                 ds.resize(cur_len + data.shape[0], axis=0)
                 ds[cur_len:] = data
 
@@ -134,11 +130,9 @@ if __name__ == "__main__":
 
     configs = {k: cls(**inp[k]) for k, cls in class_map.items()}
     fin = Path(configs["source"].pattern_path).resolve()
-    print(fin)
     if not fin.exists():
         msg = "pattern source does not exist"
         raise ValueError(msg)
-    print(fin)
 
     bl = Endstation.from_configs(**configs)
     writer = dump_coro(args.fout, args.cache_rate)
