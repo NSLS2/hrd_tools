@@ -13,7 +13,7 @@ class AnalyzerConfig:
     R: float
     # crystal to detector distance
     Rd: float
-    # angular offset between crystals in deg
+    # angular offset between crystals in rad
     cry_offset: float
     # crystal width (transverse to beam) in mm
     cry_width: float
