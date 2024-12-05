@@ -1,7 +1,5 @@
 import numpy as np
-
 import xrt.backends.raycing.sources as rsources
-
 
 
 def pattern_sample(tth, cumsum, N):

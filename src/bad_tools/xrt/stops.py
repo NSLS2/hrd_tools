@@ -1,7 +1,6 @@
 import numpy as np
-
-import xrt.backends.raycing.apertures as rapertures
 import xrt.backends.raycing as raycing
+import xrt.backends.raycing.apertures as rapertures
 
 
 class RectangularBeamstop(rapertures.RectangularAperture):

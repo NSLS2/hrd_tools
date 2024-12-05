@@ -1,18 +1,15 @@
-from typing import Self
-
-from dataclasses import dataclass
 import functools
+from dataclasses import dataclass
+from typing import Self
 
 import numpy as np
 import pandas as pd
-
 import xrt.backends.raycing as raycing
-import xrt.backends.raycing.screens as rscreens
-import xrt.backends.raycing.oes as roes
 import xrt.backends.raycing.materials as rmats
-import xrt.backends.raycing.sources_beams as rsources_beams
+import xrt.backends.raycing.oes as roes
+import xrt.backends.raycing.screens as rscreens
 
-from bad_tools.config import AnalyzerConfig, SimConfig, SourceConfig, DetectorConfig
+from bad_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
 from bad_tools.xrt.sources import XrdSource
 from bad_tools.xrt.stops import RectangularBeamstop
 
