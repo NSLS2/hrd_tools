@@ -5,15 +5,14 @@ import numpy as np
 import h5py
 import tqdm
 
-from bad_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
+from bad_tools.config import (
+    AnalyzerConfig,
+    DetectorConfig,
+    SimConfig,
+    SourceConfig,
+    SimScanConfig,
+)
 from bad_tools.xrt.endstation import Endstation
-
-
-@dataclass(frozen=True)
-class SimScanConfig:
-    start: float
-    stop: float
-    delta: float
 
 
 def scan_to_file(

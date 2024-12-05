@@ -59,3 +59,13 @@ class SourceConfig:
     # phi range around vertical to simulate
     delta_phi: float
     E_hwhm: float
+
+
+@dataclass(frozen=True)
+class SimScanConfig:
+    # start angle in deg
+    start: float
+    # stop angle in deg
+    stop: float
+    # delta between positions in deg
+    delta: float
