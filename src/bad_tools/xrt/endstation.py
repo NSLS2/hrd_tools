@@ -85,7 +85,8 @@ class Endstation:
             baffle_pitch = np.pi / 4 - (2 * theta_b - baffle_tth)
 
             baffle_y = (
-                analyzer.R * np.cos(baffle_tth) + analyzer.Rd / 2 * np.cos(baffle_pitch),
+                analyzer.R * np.cos(baffle_tth)
+                + analyzer.Rd / 2 * np.cos(baffle_pitch),
             )
             baffle_z = analyzer.R * np.sin(baffle_tth) - analyzer.Rd / 2 * np.sin(
                 baffle_pitch
@@ -249,6 +250,45 @@ class Endstation:
             (detector_config.pitch * np.array([[-0.5, 0.5]]).T * np.array([shape])).T
         )
 
+        out = {}
+
+        for k, lb in screen_beams.items():
+            # print(lb.x, lb.y, lb.z, lb.state)
+            inner = {}
+            for kt, good in zip(
+                ("good",),
+                (((lb.state == 1) | (lb.state == 2)),),
+                strict=True,
+            ):
+                if isScreen:
+                    x, y = lb.x[good], lb.z[good]
+                else:
+                    x, y = lb.x[good], lb.y[good]
+
+                flux = lb.Jss[good] + lb.Jpp[good]
+                hist2d, yedges, xedges = np.histogram2d(
+                    y, x, bins=shape, range=limits, weights=flux
+                )
+                inner[kt] = hist2d
+            out[k] = inner
+
+        return out, yedges, xedges
+
+    def get_free_ray_image(self):
+        detector_config = self.detector
+        screen_beams = self.run_process()
+
+        isScreen = True
+
+        shape = (
+            int(detector_config.height // detector_config.pitch),
+            detector_config.transverse_size,
+        )
+
+        limits = list(
+            (detector_config.pitch * np.array([[-0.5, 0.5]]).T * np.array([shape])).T
+        )
+
         states = np.vstack([v.state for v in screen_beams.values()])
         (free_ray_indx,) = np.where((states == 3).sum(axis=0) == len(screen_beams))
         free_rays = np.zeros(states.shape[1], dtype=bool)
@@ -259,8 +299,8 @@ class Endstation:
             # print(lb.x, lb.y, lb.z, lb.state)
             inner = {}
             for kt, good in zip(
-                ("good", "bad"),
-                (((lb.state == 1) | (lb.state == 2)), free_rays),
+                ("bad",),
+                (free_rays,),
                 strict=True,
             ):
                 if isScreen:
