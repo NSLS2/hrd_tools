@@ -129,10 +129,13 @@ lint.select = [
 ]
 lint.extend-ignore = [
   "PLR",    # Design related pylint codes
-  "E501",   # Line too long
-  "ISC001", # implicit concat
-  "RET505", # return in else
-  "SIM105", # contextlib.supress rather than try...except
+  "E501",   # Line too long, trust the formatter to get it right
+  "ISC001", # implicit concat, can be handy
+  # QA for wrong opinions
+  "RET505", # return in else (clearer with the `else`)
+  "SIM105", # contextlib.supress rather than try...except (just use lanugage)
+  "PTH123", # Path.open vs open (using the builtin is fine)
+  "PIE804", # creating dict to ** it is fine
 ]
 lint.unfixable = [
   "T20",  # Removes print statements
