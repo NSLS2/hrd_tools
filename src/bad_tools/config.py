@@ -69,3 +69,12 @@ class SimScanConfig:
     stop: float
     # delta between positions in deg
     delta: float
+
+
+@dataclass(frozen=True)
+class CompleteConfig:
+    source: SourceConfig
+    sim: SimConfig
+    detector: DetectorConfig
+    analyzer: AnalyzerConfig
+    scan: SimScanConfig
