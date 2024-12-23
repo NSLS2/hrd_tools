@@ -1,17 +1,18 @@
 from collections import defaultdict
-from dataclasses import asdict, replace
+from dataclasses import replace
+from typing import Any
 
-from cycler import cycler, Cycler
 import numpy as np
 import tomli_w
+from cycler import Cycler
 
 from bad_tools.config import (
     AnalyzerConfig,
+    CompleteConfig,
     DetectorConfig,
     SimConfig,
     SimScanConfig,
     SourceConfig,
-    CompleteConfig,
 )
 
 
@@ -48,7 +49,7 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
     defaults = get_defaults()
     out = []
     for entry in cycle:
-        nested = defaultdict(dict)
+        nested: dict[str, dict[str, Any]] = defaultdict(dict)
         for k, v in entry.items():
             outer, _, inner = k.partition(".")
             nested[outer][inner] = v
