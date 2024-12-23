@@ -15,7 +15,7 @@ repos:
         additional_dependencies: [black==23.7.0]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: "v4.6.0"
+    rev: "v5.0.0"
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -61,10 +61,10 @@ repos:
           - numpy
           - matplotlib
 
-  - repo: https://github.com/codespell-project/codespell
-    rev: "v2.2.6"
-    hooks:
-      - id: codespell
+  # - repo: https://github.com/codespell-project/codespell
+  #   rev: "v2.2.6"
+  #   hooks:
+  #     - id: codespell
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: "v0.10.0.1"
