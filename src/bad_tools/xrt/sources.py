@@ -12,7 +12,15 @@ class XrdSource(rsources.GeometricSource):
         self._pattern = pattern
         self._I_cumsum = (pattern.I1 / pattern.I1.sum()).cumsum()
 
-    def _set_annulus(self, axis1, axis2, rMin, rMax, phiMin, phiMax):
+    def _set_annulus(
+        self,
+        axis1,
+        axis2,
+        rMin,  # noqa: ARG002
+        rMax,  # noqa: ARG002
+        phiMin,
+        phiMax,
+    ):
         # if rMax > rMin:
         #    A = 2. / (rMax**2 - rMin**2)
         #    r = np.sqrt(2*np.random.uniform(0, 1, self.nrays)/A + rMin**2)
