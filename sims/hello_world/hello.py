@@ -204,6 +204,7 @@ def show2(data, tth, *, N=None):
 
 
 def show(data, tths, *, N=None):
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(layout="constrained")
@@ -230,7 +231,7 @@ def show(data, tths, *, N=None):
     ax.set_ylabel(r"arm 2$\theta$ [rad]")
 
 
-def source_size_scan(bl):
+def source_size_scan(bl, ring_tth):
     out = []
     widths = np.logspace(-2, 1, 16, base=10)
     for w in widths:
