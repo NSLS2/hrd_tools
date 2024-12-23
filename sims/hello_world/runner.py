@@ -91,21 +91,6 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
                 ds[cur_len:] = data
 
 
-def dump(fname, data, tth, bl, *, tlg="sim"):
-    with h5py.File(fname, "x") as f:
-        g = f.create_group(tlg)
-        for fld in fields(bl):
-            if is_dataclass(fld.type):
-                cfg_g = g.create_group(f"{fld.name}_config")
-                cfg_g.attrs.update(asdict(getattr(bl, fld.name)))
-
-        g["tth"] = tth
-
-        g.create_dataset(
-            "block", data=to_block(data), chunks=True, shuffle=True, compression="gzip"
-        )
-
-
 def to_block(data, *, sum_col=True):
     block = np.stack([v for k, v in sorted(data.items())], axis=1)
     if sum_col:
