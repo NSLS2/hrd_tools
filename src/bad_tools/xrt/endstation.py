@@ -52,8 +52,7 @@ class Endstation:
             dz=source.dz,
             dy=source.dy,
             distxprime=r"annulus",
-            # this must be a sequence, but values are ignored
-            dxprime=[0, 0],
+            dxprime=[source.min_tth, source.max_tth],
             distzprime=r"flat",
             dzprime=[np.pi / 2 - delta_phi, np.pi / 2 + delta_phi],
             distE="normal",
@@ -63,6 +62,8 @@ class Endstation:
             ],
             pattern=reference_pattern,
             nrays=sim.nrays,
+            horizontal_divergence=source.h_div,
+            vertical_divergence=source.v_div,
         )
         # TODO switch to plates
         beamLine.screen_main = rscreens.Screen(

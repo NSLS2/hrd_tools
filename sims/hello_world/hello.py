@@ -52,6 +52,8 @@ source_config = SourceConfig(
     dy=0,
     delta_phi=np.pi / 8,
     E_hwhm=1.4e-4,
+    max_tth=10,
+    min_tth=7,
 )
 
 

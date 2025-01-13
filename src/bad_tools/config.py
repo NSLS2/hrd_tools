@@ -56,9 +56,18 @@ class SourceConfig:
     dz: float
     # depth of source in mm
     dy: float
-    # phi range around vertical to simulate
+    # phi range around vertical to simulate in Deg
     delta_phi: float
+    # energy bandwidth
     E_hwhm: float
+    # vertical divergence in Deg
+    v_div: float = 0
+    # horizontal divergence in Deg
+    h_div: float = 0
+    # minimum allowed tth generated in Deg
+    min_tth: float = 0
+    # maximum allowed tth generated in Deg
+    max_tth: float = 180
 
 
 @dataclass(frozen=True)
