@@ -30,23 +30,13 @@ dynamic = ["version"]
 dependencies = [ "xrt @ git+https://github.com/kklmn/xrt.git"]
 
 [project.optional-dependencies]
-test = [
-  "pytest >=6",
-  "pytest-cov >=3",
-]
-dev = [
-  "pytest >=6",
-  "pytest-cov >=3",
-]
-docs = [
-  "sphinx>=7.0",
-  "myst_parser>=0.13",
-  "sphinx_copybutton",
-  "sphinx_autodoc_typehints",
-  "furo>=2023.08.17",
-]
-reduction = ["multianalyzer @ git+https://github.com/kif/multianalyzer.git"]
+test = []
+dev = []
+docs = []
+
+reduction = []
 shell = ["xontrib-jedi", "xontrib-vox"]
+
 [project.urls]
 Homepage = "https://github.com/tacaswell/bad_tools"
 "Bug Tracker" = "https://github.com/tacaswell/bad_tools/issues"
@@ -171,10 +161,12 @@ bad_tools = { path = ".", editable = true }
 [tool.pixi.environments]
 default = { solve-group = "default" }
 dev = { features = ["dev"], solve-group = "default" }
+glow = { features = ["glow"], solve-group = "default" }
 reduce = { features = ["reduction"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 shell = { features = ["shell"] }
+all = {features = ['shell', 'glow', 'reduction']}
 
 [tool.pixi.tasks]
 
@@ -190,6 +182,29 @@ pytest-cov = ">=6.0.0,<7"
 sphinx = ">=8.1.3,<9"
 sphinxcontrib-jquery = ">=4.1,<5"
 distro = ">=1.9.0,<2"
+tomli-w = "*"
 
 [tool.pixi.feature.shell.dependencies]
 xonsh = "*"
+
+[tool.pixi.feature.glow.dependencies]
+pyqt = "<6"
+pyqtwebengine = ">=5.15.9,<6"
+
+[tool.pixi.feature.docs.dependencies]
+sphinx = "*"
+numpydoc = "*"
+sphinx-copybutton = ">=0.5.2,<0.6"
+myst-parser = ">=4.0.0,<5"
+
+[tool.pixi.feature.reduction.dependencies]
+h5py = ">=3.12.1,<4"
+matplotlib = ">=3.10.0,<4"
+pyopencl = ">=2024.3,<2025"
+python = ">=3.11.11,<3.12"
+pytools = "<2025"
+scipy = ">=1.14.1,<2"
+silx = "*"
+
+[tool.pixi.feature.reduction.pypi-dependencies]
+multianalyzer = { git = "https://github.com/kif/multianalyzer.git" }
