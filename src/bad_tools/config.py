@@ -78,3 +78,11 @@ class CompleteConfig:
     detector: DetectorConfig
     analyzer: AnalyzerConfig
     scan: SimScanConfig
+
+
+@dataclass(frozen=True)
+class AnalyzerCalibration:
+    # the location (in pixels) of the center of the beam on the detector
+    detector_centers: tuple[float, ...]
+    # offsets from "0" on arm of each crystal in deg
+    psi: tuple[float, ...]
