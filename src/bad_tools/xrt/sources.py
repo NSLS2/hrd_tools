@@ -11,9 +11,9 @@ class XrdSource(rsources.GeometricSource):
         self,
         *args,
         pattern,
-        # in Deg
+        # in Deg as FWHM
         vertical_divergence: float = 0,
-        # in Deg
+        # in Deg as FWHM
         horizontal_divergence: float = 0,
         **kwargs,
     ):
@@ -21,6 +21,7 @@ class XrdSource(rsources.GeometricSource):
         self._pattern = pattern
         self._vertical_diivergence = vertical_divergence
         self._horizontal_diivergence = horizontal_divergence
+        self._rng = np.random.default_rng()
 
     def _set_annulus(
         self,
@@ -49,16 +50,19 @@ class XrdSource(rsources.GeometricSource):
         I_cumsum /= I_cumsum[-1]
 
         # TODO trim tth/r
-        tth = trimmed_tth[np.searchsorted(I_cumsum, np.random.rand(self.nrays))]
+        tth = trimmed_tth[np.searchsorted(I_cumsum, self._rng.uniform(size=self.nrays))]
         # print(f"{tth.min()=}, {tth.max()=}")
         # TODO only generate extra random numbers if needed
         if self._vertical_diivergence > 0:
-            extra_vertical = self._vertical_diivergence * np.random.rand(self.nrays)
+
+            v_sigma = self._vertical_diivergence / 2.355
+            extra_vertical = self._rng.normal(scale=v_sigma, size=self.nrays)
         else:
             extra_vertical = 0
 
         if self._horizontal_diivergence > 0:
-            extra_horizontal = self._horizontal_diivergence * np.random.rand(self.nrays)
+            h_sigma = self._vertical_diivergence / 2.355
+            extra_horizontal = self._rng.normal(scale=h_sigma, size=self.nrays)
         else:
             extra_horizontal = 0
 
