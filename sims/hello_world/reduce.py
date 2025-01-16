@@ -22,7 +22,7 @@ def load_all_config(
     path: Path, *, ext="h5", prefix=""
 ) -> dict[Path, tuple[CompleteConfig, AnalyzerCalibration] | None]:
     configs = {}
-    for _ in path.glob(f"**/{prefix}*{ext}"):
+    for _ in sorted(path.glob(f"**/{prefix}*{ext}")):
         config = load_config(_)
 
         configs[_] = config
@@ -38,7 +38,8 @@ def load_config(fname, *, tlg="sim"):
             try:
                 config_grp = g[f"{fld.name}_config"]
             except KeyError:
-                print(f"missing {fld.name}")
+                if fld.name != 'scan':
+                    print(f"missing {fld.name}")
             else:
                 configs[fld.name] = fld.type(**config_grp.attrs)
         if "scan" not in configs:
@@ -48,9 +49,10 @@ def load_config(fname, *, tlg="sim"):
                 stop=np.rad2deg(tth[-1]),
                 delta=np.rad2deg(np.mean(np.diff(tth))),
             )
-        complete_config = CompleteConfig(**configs)
-
-    calibration = AnalyzerCalibration(
+        return CompleteConfig(**configs)
+        
+def dflt_config(complete_config):
+    return AnalyzerCalibration(
         detector_centers=(
             [complete_config.detector.transverse_size / 2] * complete_config.analyzer.N
         ),
@@ -59,7 +61,6 @@ def load_config(fname, *, tlg="sim"):
             for j in range(complete_config.analyzer.N)
         ],
     )
-    return complete_config, calibration
 
 
 def find_varied_config(configs):
@@ -69,7 +70,8 @@ def find_varied_config(configs):
         for k, sc in cd.items():
             for f, v in sc.items():
                 out[(k, f)].add(v)
-    return [k for k, v in out.items() if len(v) > 1]
+    print(out)
+    return [k for k, s in out.items() if len(s) > 1]
 
 
 def load_data(fname, *, tlg="sim", scale=1):
@@ -183,10 +185,12 @@ def plot_raw(tth, mca, title):
 
 def reduce_file(
     fname: Path,
-    config: CompleteConfig,
-    calib: AnalyzerCalibration,
+    calib: AnalyzerCalibration | None =None,
     mode: str = "opencl",
 ):
+    config = load_config(fname)
+    if calib is None:
+        calib = dflt_config(config)
     dtth = config.scan.delta
     print(f"{dtth=}")
     tth, channels = load_data(fname)
@@ -210,18 +214,21 @@ def reduce_file(
     #     break
     #     ax.plot(ret.tth, 0.1 * j + ret.signal[j, :, 0] / ret.norm[j], label=j)
     # ax.legend()
-    return ret
+    return ret, config, calib
 
 
 def reduce_and_plot(
-    configs: dict[Path, tuple[CompleteConfig, AnalyzerCalibration]],
+    files: list[Path],
+    # configs: dict[Path, tuple[CompleteConfig, AnalyzerCalibration]],
+    **kwargs
 ) -> tuple[dict[Path, Result], Figure]:
-    res = {k: reduce_file(k, *v) for k, v in configs.items()}
-    label_keys = find_varied_config([a for a, _ in configs.values()])
+    reduced = {k: reduce_file(k, **kwargs) for k in files}
+    
+    label_keys = find_varied_config([v[1] for v in reduced.values()])
+    print(label_keys)
     fig, ax = plt.subplots()
-    for k in list(res):
-        ret = res[k]
-        config = configs[k][0]
+    for k, (ret, config, calib) in reduced.items():
+        
         for j in range(config.analyzer.N):
             label = " ".join(
                 f"{sec}.{parm}={getattr(getattr(config, sec), parm):.02g}"
@@ -231,4 +238,4 @@ def reduce_and_plot(
             mask = np.isfinite(normed)
             ax.plot(ret.tth[mask], 0.1 * j + normed[mask], label=label)
     ax.legend()
-    return res, fig
+    return reduced, fig
