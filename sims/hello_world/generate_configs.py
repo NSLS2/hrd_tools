@@ -17,20 +17,22 @@ from bad_tools.config import (
 
 
 def get_defaults():
+    min_tth = 7.3
+    max_tth = 8.7
     return CompleteConfig(
         **{
             "source": SourceConfig(
                 E_incident=29_400,
                 pattern_path="bob",
-                dx=1,
-                dz=0.1,
+                dx=4,
+                dz=0.01,
                 dy=0,
                 delta_phi=16,
                 E_hwhm=1.4e-4,
                 h_div=np.rad2deg(0),
-                v_div=np.rad2deg(0.0002),
-                max_tth=9,
-                min_tth=7,
+                v_div=np.rad2deg(0),
+                max_tth=max_tth,
+                min_tth=min_tth,
             ),
             "sim": SimConfig(nrays=1_000_000),
             "detector": DetectorConfig(pitch=0.055, transverse_size=512, height=1),
@@ -44,7 +46,7 @@ def get_defaults():
                 acceptance_angle=0.05651551,
                 thickness=1,
             ),
-            "scan": SimScanConfig(start=7, stop=9, delta=1e-4),
+            "scan": SimScanConfig(start=min_tth, stop=max_tth, delta=1e-4),
         }
     )
 
@@ -65,9 +67,9 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
 
 if __name__ == "__main__":
     configs = convert_cycler(
-        cycler("source.pattern_path", ["/home/tcaswell/Downloads/11bmb_7871_Y1.xye"])
-        * cycler("source.v_div", np.rad2deg(np.array([0, 0.02, 0.2, 2]) / 1000))
+        cycler("source.pattern_path", ["/nsls2/users/tcaswell/11bmb_7871_Y1.xye"])
+        * cycler("analyzer.acceptance_angle", np.array([.1, .2, 1, 2]) * 0.05651551)
     )
     for j, config in enumerate(configs):
-        with open(f"config2_{j}.toml", "wb") as fout:
+        with open(f"config_{j}.toml", "wb") as fout:
             tomli_w.dump(asdict(config), fout)
