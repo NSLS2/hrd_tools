@@ -6967,9 +6967,9 @@ packages:
   timestamp: 1733236466015
 - kind: pypi
   name: bad-tools
-  version: 0.1.dev94+g4c20855.d20250117
+  version: 0.1.dev95+g09502f1.d20250117
   path: .
-  sha256: c15bc4a62665073afa0bc6bfaf68a1836f392ee17f3493b6e9d6e9b8725b6a4f
+  sha256: 027db25859eaaa0dede690a41700df5ff4e94e1778a77c47ce9f34cd124d46be
   requires_dist:
   - xrt @ git+https://github.com/kklmn/xrt.git
   - xontrib-jedi ; extra == 'shell'
@@ -9873,29 +9873,6 @@ packages:
   purls: []
   size: 1646987
   timestamp: 1736702906600
-- kind: conda
-  name: harfbuzz
-  version: 10.2.0
-  build: h885c0d4_0
-  subdir: win-64
-  url: https://conda.anaconda.org/conda-forge/win-64/harfbuzz-10.2.0-h885c0d4_0.conda
-  sha256: d366a5a6da75254e912f90a342af909e8eeeb306613e09f164bc30139b73c5e5
-  md5: faaf912396cba72bd54c8b3772944ab7
-  depends:
-  - cairo >=1.18.2,<2.0a0
-  - freetype >=2.12.1,<3.0a0
-  - graphite2
-  - icu >=75.1,<76.0a0
-  - libexpat >=2.6.4,<3.0a0
-  - libglib >=2.82.2,<3.0a0
-  - libzlib >=1.3.1,<2.0a0
-  - ucrt >=10.0.20348.0
-  - vc >=14.2,<15
-  - vc14_runtime >=14.29.30139
-  license: MIT
-  purls: []
-  size: 1103154
-  timestamp: 1736704125064
 - kind: conda
   name: harfbuzz
   version: 10.2.0
