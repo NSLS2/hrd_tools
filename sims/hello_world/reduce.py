@@ -85,6 +85,7 @@ def load_data(fname, *, tlg="sim", scale=1):
 def reduce_raw(
     block,
     tths,
+    *,
     tth_min: float,
     tth_max: float,
     dtth: float,
@@ -126,7 +127,8 @@ def reduce_raw(
         # mis-orientation of the analyzer along y (°)
         rolly=[0.0] * analyzer.N,
     )
-    return mma.integrate(
+    frames, _, num_col, rox_max = block.shape
+    ret = mma.integrate(
         # data all stacked as one
         roicollection=block,
         # arm positions
@@ -140,10 +142,13 @@ def reduce_raw(
         # shape of "ROIs"
         num_row=detector.transverse_size,
         num_col=1,
+        roi_max=rox_max,
         # how to understand the shape of roicollection
         columnorder=1,
         phi_max=phi_max,
+        width=0,
     )
+    return ret
 
 
 def sum_mca(mca):
