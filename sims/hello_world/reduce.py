@@ -38,7 +38,7 @@ def load_config(fname, *, tlg="sim"):
             try:
                 config_grp = g[f"{fld.name}_config"]
             except KeyError:
-                if fld.name != 'scan':
+                if fld.name != "scan":
                     print(f"missing {fld.name}")
             else:
                 configs[fld.name] = fld.type(**config_grp.attrs)
@@ -50,7 +50,8 @@ def load_config(fname, *, tlg="sim"):
                 delta=np.rad2deg(np.mean(np.diff(tth))),
             )
         return CompleteConfig(**configs)
-        
+
+
 def dflt_config(complete_config):
     return AnalyzerCalibration(
         detector_centers=(
@@ -190,7 +191,7 @@ def plot_raw(tth, mca, title):
 
 def reduce_file(
     fname: Path,
-    calib: AnalyzerCalibration | None =None,
+    calib: AnalyzerCalibration | None = None,
     mode: str = "opencl",
 ):
     config = load_config(fname)
@@ -225,15 +226,14 @@ def reduce_file(
 def reduce_and_plot(
     files: list[Path],
     # configs: dict[Path, tuple[CompleteConfig, AnalyzerCalibration]],
-    **kwargs
+    **kwargs,
 ) -> tuple[dict[Path, Result], Figure]:
     reduced = {k: reduce_file(k, **kwargs) for k in files}
-    
+
     label_keys = find_varied_config([v[1] for v in reduced.values()])
     print(label_keys)
     fig, ax = plt.subplots()
     for k, (ret, config, calib) in reduced.items():
-        
         for j in range(config.analyzer.N):
             label = " ".join(
                 f"{sec}.{parm}={getattr(getattr(config, sec), parm):.02g}"
