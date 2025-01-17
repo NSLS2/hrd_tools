@@ -79,7 +79,7 @@ def load_data(fname, *, tlg="sim", scale=1):
         g = f[tlg]
         block = g["block"][:]
         block *= scale
-        return np.rad2deg(g["tth"][:]), block.astype("uint32")
+        return np.rad2deg(g["tth"][:]), block.astype("int32")
 
 
 def reduce_raw(
