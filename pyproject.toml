@@ -171,18 +171,19 @@ all = {features = ['shell', 'glow', 'reduction']}
 [tool.pixi.tasks]
 
 [tool.pixi.dependencies]
-numpy = ">=2.1.3,<3"
-ophyd = ">=1.6.1,<2"
-bluesky = ">=1.13.0a3,<2"
+numpy = ">=2.2.1,<3"
+ophyd = ">=1.10.0,<2"
+bluesky = ">=1.13.1rc2,<2"
 pyopencl = ">=2024.3,<2025"
 pyopengl = ">=3.1.6,<4"
-ipython = ">=8.29.0,<9"
+ipython = ">=8.31.0,<9"
 pytest = ">=8.3.4,<9"
 pytest-cov = ">=6.0.0,<7"
 sphinx = ">=8.1.3,<9"
 sphinxcontrib-jquery = ">=4.1,<5"
 distro = ">=1.9.0,<2"
-tomli-w = "*"
+tomli-w = ">=1.2.0,<2"
+python = ">=3.11.11,<3.14"
 
 
 [tool.pixi.feature.shell.dependencies]
@@ -208,6 +209,9 @@ scipy = ">=1.14.1,<2"
 silx = "*"
 ipykernel = ">=6.29.5,<7"
 ipympl = ">=0.9.6,<0.10"
+
+[tool.pixi.feature.reduction.target.linux-64.dependencies]
+pocl = "*"
 
 [tool.pixi.feature.reduction.pypi-dependencies]
 multianalyzer = { git = "https://github.com/kif/multianalyzer.git" }
