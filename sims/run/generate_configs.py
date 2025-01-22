@@ -1,5 +1,6 @@
 from collections import defaultdict
 from dataclasses import asdict, replace
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -23,7 +24,7 @@ def get_defaults():
         **{
             "source": SourceConfig(
                 E_incident=29_400,
-                pattern_path="bob",
+                pattern_path="/nsls2/users/tcaswell/11bmb_7871_Y1.xye",
                 dx=4,
                 dz=0.01,
                 dy=0,
@@ -60,16 +61,29 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
             outer, _, inner = k.partition(".")
             nested[outer][inner] = v
 
-        for k, v in nested.items():
-            out.append(replace(defaults, **{k: replace(getattr(defaults, k), **v)}))
+        out.append(
+            replace(
+                defaults,
+                **{k: replace(getattr(defaults, k), **v) for k, v in nested.items()},
+            )
+        )
     return out
 
 
 if __name__ == "__main__":
-    configs = convert_cycler(
-        cycler("source.pattern_path", ["/nsls2/users/tcaswell/11bmb_7871_Y1.xye"])
-        * cycler("analyzer.acceptance_angle", np.array([.1, .2, 1, 2]) * 0.05651551)
-    )
+    cycle = cycler("source.E_hwhm", np.array([.1, 1, 2, 5]) * 1.4e-4)
+    configs = convert_cycler(cycle)
+    config_path = Path("configs")
+    config_path.mkdir(exist_ok=True)
+    for f in config_path.glob("config_*.toml"):
+        f.unlink()
     for j, config in enumerate(configs):
-        with open(f"config_{j}.toml", "wb") as fout:
+        print(
+            ", ".join(
+                f"{k}: {getattr(getattr(config, sub), key)}"
+                for k, sub, _, key in [(k, *k.partition(".")) for k in cycle.keys]
+            )
+        )
+
+        with open(config_path / f"config_{j}.toml", "wb") as fout:
             tomli_w.dump(asdict(config), fout)
