@@ -11,6 +11,5 @@
 #SBATCH --array=0-3
 
 mkdir -p output
-printf -v date '%(%Y%m%d)T\n' -1
 
 pixi run python ../hello_world/runner.py configs/config_$SLURM_ARRAY_TASK_ID.toml /nsls2/data3/projects/next_iiia_hrd/xrt_output/$(date '+%Y%m%d')/${SLURM_ARRAY_JOB_ID}-$SLURM_ARRAY_TASK_ID.h5 --cache-rate=1000
