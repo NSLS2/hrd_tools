@@ -157,6 +157,7 @@ docs = { features = ["docs"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 shell = { features = ["shell"], no-default-feature = true }
 all = { features = ['shell', 'glow', 'reduction'] }
+lint = { features = ['lint'], no-default-feature = true }
 
 [tool.pixi.tasks]
 
@@ -199,9 +200,13 @@ scipy = ">=1.14.1,<2"
 silx = "*"
 ipykernel = ">=6.29.5,<7"
 ipympl = ">=0.9.6,<0.10"
+jupytext = ">=1.16.6,<2"
 
 [tool.pixi.feature.reduction.target.linux-64.dependencies]
 pocl = "*"
 
 [tool.pixi.feature.reduction.pypi-dependencies]
 multianalyzer = { git = "https://github.com/kif/multianalyzer.git" }
+
+[tool.pixi.feature.lint.dependencies]
+ruff = "*"
