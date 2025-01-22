@@ -5,9 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bad_tools"
-authors = [
-  { name = "Thomas A Caswell", email = "tcaswell@bnl.gov" },
-]
+authors = [{ name = "Thomas A Caswell", email = "tcaswell@bnl.gov" }]
 description = "Tools for the BAD beamline as part of NEXT-III at NSLS-II."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,7 +25,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = [ "xrt @ git+https://github.com/kklmn/xrt.git"]
+dependencies = ["xrt @ git+https://github.com/kklmn/xrt.git"]
 
 [project.optional-dependencies]
 test = []
@@ -52,22 +50,14 @@ write_to = "src/bad_tools/_version.py"
 minversion = "6.0"
 addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
-filterwarnings = [
-  "error",
-]
+filterwarnings = ["error"]
 log_cli_level = "INFO"
-testpaths = [
-  "tests",
-]
+testpaths = ["tests"]
 
 
 [tool.coverage]
 run.source = ["bad_tools"]
-port.exclude_lines = [
-  'pragma: no cover',
-  '\.\.\.',
-  'if typing.TYPE_CHECKING:',
-]
+port.exclude_lines = ['pragma: no cover', '\.\.\.', 'if typing.TYPE_CHECKING:']
 
 [tool.mypy]
 files = ["src", "tests"]
@@ -87,36 +77,36 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
-module = [
-    "ophyd.*"
-]
+module = ["ophyd.*"]
 ignore_missing_imports = true
 
 
 [tool.ruff]
 lint.select = [
-  "E", "F", "W", # flake8
-  "B",           # flake8-bugbear
-  "I",           # isort
-  "ARG",         # flake8-unused-arguments
-  "C4",          # flake8-comprehensions
-  "EM",          # flake8-errmsg
-  "ICN",         # flake8-import-conventions
-  "ISC",         # flake8-implicit-str-concat
-  "G",           # flake8-logging-format
-  "PGH",         # pygrep-hooks
-  "PIE",         # flake8-pie
-  "PL",          # pylint
-  "PT",          # flake8-pytest-style
-  "PTH",         # flake8-use-pathlib
-  "RET",         # flake8-return
-  "RUF",         # Ruff-specific
-  "SIM",         # flake8-simplify
-  "UP",          # pyupgrade
-  "YTT",         # flake8-2020
-  "EXE",         # flake8-executable
-  "NPY",         # NumPy specific rules
-  "PD",          # pandas-vet
+  "E",
+  "F",
+  "W",   # flake8
+  "B",   # flake8-bugbear
+  "I",   # isort
+  "ARG", # flake8-unused-arguments
+  "C4",  # flake8-comprehensions
+  "EM",  # flake8-errmsg
+  "ICN", # flake8-import-conventions
+  "ISC", # flake8-implicit-str-concat
+  "G",   # flake8-logging-format
+  "PGH", # pygrep-hooks
+  "PIE", # flake8-pie
+  "PL",  # pylint
+  "PT",  # flake8-pytest-style
+  "PTH", # flake8-use-pathlib
+  "RET", # flake8-return
+  "RUF", # Ruff-specific
+  "SIM", # flake8-simplify
+  "UP",  # pyupgrade
+  "YTT", # flake8-2020
+  "EXE", # flake8-executable
+  "NPY", # NumPy specific rules
+  "PD",  # pandas-vet
 ]
 lint.extend-ignore = [
   "PLR",    # Design related pylint codes
@@ -148,8 +138,8 @@ exclude = []
 "noxfile.py" = ["T20"]
 
 [tool.pixi.system-requirements]
-linux="3.10"
-libc="2.17"
+linux = "3.10"
+libc = "2.17"
 
 [tool.pixi.project]
 channels = ["conda-forge"]
@@ -165,8 +155,8 @@ glow = { features = ["glow"], solve-group = "default" }
 reduce = { features = ["reduction"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
-shell = { features = ["shell"] }
-all = {features = ['shell', 'glow', 'reduction']}
+shell = { features = ["shell"], no-default-feature = true }
+all = { features = ['shell', 'glow', 'reduction'] }
 
 [tool.pixi.tasks]
 
