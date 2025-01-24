@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from multianalyzer import Result
 
-from bad_tools.config import (
+from .config import (
     AnalyzerCalibration,
     AnalyzerConfig,
     CompleteConfig,
@@ -56,20 +56,10 @@ def dflt_config(complete_config):
             [complete_config.detector.transverse_size / 2] * complete_config.analyzer.N
         ),
         psi=[
-            np.rad2deg(complete_config.analyzer.cry_offset) * j + -0.1 + 0.02
+            np.rad2deg(complete_config.analyzer.cry_offset) * j + 0.07700000000000
             for j in range(complete_config.analyzer.N)
         ],
     )
-
-
-def find_varied_config(configs):
-    out = defaultdict(set)
-    for c in configs:
-        cd = asdict(c)
-        for k, sc in cd.items():
-            for f, v in sc.items():
-                out[(k, f)].add(v)
-    return [k for k, s in out.items() if len(s) > 1]
 
 
 def load_data(fname, *, tlg="sim", scale=1):
@@ -245,3 +235,52 @@ def reduce_and_plot(
             ax.plot(ret.tth[mask], 0.1 * j + normed[mask], label=label)
     ax.legend()
     return reduced, fig
+
+
+def find_varied_config(configs):
+    out = defaultdict(set)
+    for c in configs:
+        cd = asdict(c)
+        for k, sc in cd.items():
+            for f, v in sc.items():
+                out[(k, f)].add(v)
+    return [k for k, s in out.items() if len(s) > 1]
+
+
+def normalize_result(res: Result, scale_to_max=True):
+    signal = res.signal.sum(axis=2)
+    out = np.zeros_like(signal, dtype=float)
+    # first dimension is number of crystals
+    for j in range(signal.shape[0]):
+        normed = signal[j] / res.norm[j]
+        if scale_to_max:
+            normed /= np.nanmax(normed)
+        out[j] = normed
+    return out
+
+
+def plot_reduced(
+    res: Result,
+    ax=None,
+    *,
+    label: str | None = None,
+    scale_to_max: bool = False,
+    **kwargs,
+):
+    if ax is None:
+        fig, ax = plt.subplots(layout="constrained")
+        # this should be length 1, sum just to be safe, is higher if in non-ROI mode
+    for j, normed in enumerate(normalize_result(res, scale_to_max)):
+        if label is not None:
+            label = f"{label} ({j})"
+        mask = np.isfinite(normed)
+        ax.plot(res.tth[mask], normed[mask], label=label, **kwargs)
+
+
+def plot_ref(df, ax, scale_to_max=True, **kwargs):
+    x = df["theta"]
+    y = df["I1"]
+    if scale_to_max:
+        y /= y.max()
+
+    ax.plot(x, y, **{"label": "reference", "scalex": False, **kwargs})
