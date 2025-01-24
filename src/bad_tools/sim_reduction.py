@@ -59,6 +59,7 @@ def dflt_config(complete_config):
             np.rad2deg(complete_config.analyzer.cry_offset) * j + 0.07700000000000
             for j in range(complete_config.analyzer.N)
         ],
+        roll=[complete_config.analyzer.roll] * complete_config.analyzer.N,
     )
 
 

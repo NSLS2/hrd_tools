@@ -104,6 +104,7 @@ class Endstation:
                     material=crystalSi01,
                     limPhysX=[-analyzer.cry_width / 2, analyzer.cry_width / 2],
                     limPhysY=[-analyzer.cry_depth / 2, analyzer.cry_depth / 2],
+                    roll=np.deg2rad(analyzer.roll),
                 ),
             )
             setattr(

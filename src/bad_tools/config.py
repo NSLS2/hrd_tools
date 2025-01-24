@@ -25,6 +25,8 @@ class AnalyzerConfig:
     acceptance_angle: float
     # thickness of crystals in mm
     thickness: float
+    # roll of the analyzer crystals in deg
+    roll: float = 0
 
 
 @dataclass(frozen=True)
@@ -95,3 +97,5 @@ class AnalyzerCalibration:
     detector_centers: tuple[float, ...]
     # offsets from "0" on arm of each crystal in deg
     psi: tuple[float, ...]
+    # roll of detector about direction of beam
+    roll: tuple[float, ...]
