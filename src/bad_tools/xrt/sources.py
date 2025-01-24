@@ -71,7 +71,7 @@ class XrdSource(rsources.GeometricSource):
         axis1[:] = b * np.cos(phi)
         axis2[:] = a * np.sin(phi)
 
-        scale = axis1**2 + axis2**2 + 1
+        scale = np.sqrt(axis1**2 + axis2**2 + 1)
 
         axis1[:] /= scale
         axis2[:] /= scale
