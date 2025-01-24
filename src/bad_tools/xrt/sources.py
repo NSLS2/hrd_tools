@@ -47,21 +47,20 @@ class XrdSource(rsources.GeometricSource):
         # print(len(trimmed_tth))
 
         I_cumsum = trimmed_pattern.cumsum()
+        I_cumsum -= I_cumsum[0]
         I_cumsum /= I_cumsum[-1]
 
-        # TODO trim tth/r
         tth = trimmed_tth[np.searchsorted(I_cumsum, self._rng.uniform(size=self.nrays))]
         # print(f"{tth.min()=}, {tth.max()=}")
         # TODO only generate extra random numbers if needed
         if self._vertical_diivergence > 0:
-
             v_sigma = self._vertical_diivergence / 2.355
             extra_vertical = self._rng.normal(scale=v_sigma, size=self.nrays)
         else:
             extra_vertical = 0
 
         if self._horizontal_diivergence > 0:
-            h_sigma = self._vertical_diivergence / 2.355
+            h_sigma = self._horizontal_diivergence / 2.355
             extra_horizontal = self._rng.normal(scale=h_sigma, size=self.nrays)
         else:
             extra_horizontal = 0
@@ -71,6 +70,11 @@ class XrdSource(rsources.GeometricSource):
         phi = np.random.uniform(phiMin, phiMax, self.nrays)
         axis1[:] = b * np.cos(phi)
         axis2[:] = a * np.sin(phi)
+
+        scale = axis1**2 + axis2**2 + 1
+
+        axis1[:] /= scale
+        axis2[:] /= scale
 
 
 # because xrt.glow has a regex on the str of the type
