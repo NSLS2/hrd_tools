@@ -29,11 +29,11 @@ from bad_tools.sim_reduction import (
 )
 
 # %%
-os.environ["PYOPENCL_CTX"] = "1"
+os.environ["PYOPENCL_CTX"] = "0"
 
 # %%
 reference_pattern = pd.read_csv(
-    "/home/tcaswell/Downloads/11bmb_7871_Y1.xye",
+    "/nsls2/data3/projects/next_iiia_hrd/sim_input/11bmb_7871_Y1.xye",
     skiprows=3,
     names=["theta", "I1", "I0"],
     sep=" ",
@@ -43,8 +43,9 @@ reference_pattern = pd.read_csv(
 
 # %%
 
-config = load_all_config(Path("/nsls2/data3/projects/next_iiia_hrd/xrt_output/"))
-# config = load_all_config(Path("/mnt/scratch/hrd/sims/xrt_output/20250123"))
+config = load_all_config(
+    Path("/nsls2/data3/projects/next_iiia_hrd/xrt_output/20250124")
+)
 
 # %%
 df = pd.DataFrame(
