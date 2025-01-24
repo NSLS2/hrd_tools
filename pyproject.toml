@@ -121,6 +121,7 @@ lint.extend-ignore = [
   "PIE804", # creating dict to ** it is fine
   "C408",   # using dict() is fine
   "NPY002", # allow the old numpy random generator
+  "PD901",  # df is a fine variable name
 ]
 lint.unfixable = [
   "T20",  # Removes print statements
@@ -196,7 +197,7 @@ matplotlib = "!=3.10.0"
 pyopencl = ">=2024.3,<2025"
 python = ">=3.11.11,<3.12"
 pytools = "<2025"
-scipy = ">=1.14.1,<2"
+scipy = ">=1.15.1,<2"
 silx = "*"
 ipykernel = ">=6.29.5,<7"
 ipympl = ">=0.9.6,<0.10"

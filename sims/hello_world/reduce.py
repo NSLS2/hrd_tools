@@ -18,9 +18,7 @@ from bad_tools.config import (
 )
 
 
-def load_all_config(
-    path: Path, *, ext="h5", prefix=""
-) -> dict[Path, tuple[CompleteConfig, AnalyzerCalibration] | None]:
+def load_all_config(path: Path, *, ext="h5", prefix="") -> dict[Path, CompleteConfig]:
     configs = {}
     for _ in sorted(path.glob(f"**/{prefix}*{ext}")):
         config = load_config(_)
@@ -58,7 +56,7 @@ def dflt_config(complete_config):
             [complete_config.detector.transverse_size / 2] * complete_config.analyzer.N
         ),
         psi=[
-            np.rad2deg(complete_config.analyzer.cry_offset) * j
+            np.rad2deg(complete_config.analyzer.cry_offset) * j + -0.1 + 0.02
             for j in range(complete_config.analyzer.N)
         ],
     )
@@ -71,7 +69,6 @@ def find_varied_config(configs):
         for k, sc in cd.items():
             for f, v in sc.items():
                 out[(k, f)].add(v)
-    print(out)
     return [k for k, s in out.items() if len(s) > 1]
 
 
@@ -95,6 +92,7 @@ def reduce_raw(
     calibration: AnalyzerCalibration,
     phi_max: float = 90,
     mode="opencl",
+    width=0,
 ):
     if mode == "cython":
         cls = multianalyzer.MultiAnalyzer
@@ -147,7 +145,7 @@ def reduce_raw(
         # how to understand the shape of roicollection
         columnorder=1,
         phi_max=phi_max,
-        width=0,
+        width=width,
     )
     return ret
 
@@ -193,11 +191,13 @@ def reduce_file(
     fname: Path,
     calib: AnalyzerCalibration | None = None,
     mode: str = "opencl",
+    dtth_scale: float = 5.0,
+    phi_max: float = 90,
 ):
     config = load_config(fname)
     if calib is None:
         calib = dflt_config(config)
-    dtth = config.scan.delta
+    dtth = config.scan.delta * dtth_scale
     print(f"{dtth=}")
     tth, channels = load_data(fname)
     # for j in range(config.analyzer.N):
@@ -212,8 +212,9 @@ def reduce_file(
         analyzer=config.analyzer,
         detector=config.detector,
         calibration=calib,
-        phi_max=np.float64(90),
+        phi_max=np.float64(phi_max),
         mode=mode,
+        width=0,
     )
     # fig, ax = plt.subplots()
     # for j in range(config.analyzer.N):
@@ -233,7 +234,7 @@ def reduce_and_plot(
     label_keys = find_varied_config([v[1] for v in reduced.values()])
     print(label_keys)
     fig, ax = plt.subplots()
-    for k, (ret, config, calib) in reduced.items():
+    for _, (ret, config, _) in reduced.items():
         for j in range(config.analyzer.N):
             label = " ".join(
                 f"{sec}.{parm}={getattr(getattr(config, sec), parm):.02g}"
