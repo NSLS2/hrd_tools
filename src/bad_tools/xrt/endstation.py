@@ -44,7 +44,7 @@ class Endstation:
             skipinitialspace=True,
             index_col=False,
         )
-        delta_phi = source.delta_phi
+        delta_phi = np.deg2rad(source.delta_phi)
         beamLine.geometricSource01 = XrdSource(
             bl=beamLine,
             center=[0, 0, 0],
