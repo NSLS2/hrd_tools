@@ -31,7 +31,6 @@ dependencies = []
 test = []
 dev = []
 docs = []
-
 reduction = []
 shell = ["xontrib-jedi", "xontrib-vox"]
 
@@ -91,7 +90,6 @@ lint.select = [
   "ARG", # flake8-unused-arguments
   "C4",  # flake8-comprehensions
   "EM",  # flake8-errmsg
-  "ICN", # flake8-import-conventions
   "ISC", # flake8-implicit-str-concat
   "G",   # flake8-logging-format
   "PGH", # pygrep-hooks
@@ -158,9 +156,11 @@ docs = { features = ["docs"], solve-group = "default" }
 test = { features = ["test"], solve-group = "default" }
 shell = { features = ["shell"], no-default-feature = true }
 lint = { features = ['lint'], no-default-feature = true }
+tiled = { features = ['tiled'] }
 bluesky = ["bluesky"]
 
 [tool.pixi.tasks]
+
 
 [tool.pixi.dependencies]
 ipython = ">=8.31.0,<9"
@@ -168,6 +168,7 @@ cycler = ">=0.12.1,<0.13"
 distro = ">=1.9.0,<2"
 tomli-w = ">=1.2.0,<2"
 python = ">=3.11.11,<3.14"
+
 
 [tool.pixi.feature.dev.dependencies]
 pytest = ">=8.3.4,<9"
@@ -191,15 +192,16 @@ sphinxcontrib-jquery = ">=4.1,<5"
 [tool.pixi.feature.reduction.dependencies]
 h5py = ">=3.12.1,<4"
 matplotlib = "*"
-pyopencl = ">=2024.3,<2025"
-python = ">=3.11.11,<3.12"
-pytools = "<2025"
+pyopencl = ">=2024.3,<2026"
+python = ">=3.11.11,<3.14"
+pytools = "<2026"
 scipy = ">=1.15.1,<2"
 silx = "*"
 ipykernel = ">=6.29.5,<7"
 ipympl = ">=0.9.6,<0.10"
 jupytext = ">=1.16.6,<2"
 pandas = '*'
+tiled = ">=0.1.0b17"
 
 [tool.pixi.feature.reduction.target.linux-64.dependencies]
 pocl = "*"
@@ -211,8 +213,8 @@ multianalyzer = { git = "https://github.com/kif/multianalyzer.git" }
 xrt = { git = "https://github.com/kklmn/xrt.git" }
 
 [tool.pixi.feature.xrt.dependencies]
-pyopencl = ">=2024.3,<2025"
-numpy = ">=2.2.1,<3"
+pyopencl = ">=2024.3,<2026"
+numpy = ">=2.1.1,<3"
 pandas = ">=2.2.3,<3"
 tqdm = ">=4.67.1,<5"
 h5py = ">=3.12.1,<4"
@@ -224,3 +226,17 @@ ophyd = ">=1.10.0,<2"
 
 [tool.pixi.feature.lint.dependencies]
 ruff = "*"
+
+[tool.pixi.feature.lint.tasks]
+check = "ruff check --fix --exclude=sims"
+format = "ruff format --exclude=sims"
+lint = { depends_on = ["format", "check"] }
+
+[tool.pixi.feature.tiled.dependencies]
+tiled = "*"
+h5py = "*"
+
+[tool.pixi.feature.tiled.tasks]
+tiled_init = { cmd = "tiled catalog init sqlite+aiosqlite:///catalog.db", cwd = "tiled" }
+tiled_serve = { cmd = "tiled serve config config.yml --public", cwd = "tiled", env = { TILED_SINGLE_USER_API_KEY = 'secret' } }
+tiled_register = { cmd = "tiled register http://localhost:8000 --prefix=raw --api-key=secret --adapter='application/x-hdf5=custom:SimAdapter' /nsls2/data3/projects/next_iiia_hrd/xrt_output", env = { PYTHONPATH = './tiled' } }

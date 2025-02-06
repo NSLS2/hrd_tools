@@ -1,74 +1,16 @@
 from collections import defaultdict
-from dataclasses import asdict, fields
+from dataclasses import asdict
 from pathlib import Path
 
-import h5py
+import matplotlib
 import matplotlib.pyplot as plt
 import multianalyzer.opencl
 import numpy as np
 from matplotlib.figure import Figure
 from multianalyzer import Result
 
-from .config import (
-    AnalyzerCalibration,
-    AnalyzerConfig,
-    CompleteConfig,
-    DetectorConfig,
-    SimScanConfig,
-)
-
-
-def load_all_config(path: Path, *, ext="h5", prefix="") -> dict[Path, CompleteConfig]:
-    configs = {}
-    for _ in sorted(path.glob(f"**/{prefix}*{ext}")):
-        config = load_config(_)
-
-        configs[_] = config
-    return configs
-
-
-def load_config(fname, *, tlg="sim"):
-    with h5py.File(fname, "r") as f:
-        g = f[tlg]
-        configs = {}
-
-        for fld in fields(CompleteConfig):
-            try:
-                config_grp = g[f"{fld.name}_config"]
-            except KeyError:
-                if fld.name != "scan":
-                    print(f"missing {fld.name}")
-            else:
-                configs[fld.name] = fld.type(**config_grp.attrs)
-        if "scan" not in configs:
-            tth = g["tth"][:]
-            configs["scan"] = SimScanConfig(
-                start=np.rad2deg(tth[0]),
-                stop=np.rad2deg(tth[-1]),
-                delta=np.rad2deg(np.mean(np.diff(tth))),
-            )
-        return CompleteConfig(**configs)
-
-
-def dflt_config(complete_config):
-    return AnalyzerCalibration(
-        detector_centers=(
-            [complete_config.detector.transverse_size / 2] * complete_config.analyzer.N
-        ),
-        psi=[
-            np.rad2deg(complete_config.analyzer.cry_offset) * j + 0.07700000000000
-            for j in range(complete_config.analyzer.N)
-        ],
-        roll=[complete_config.analyzer.roll] * complete_config.analyzer.N,
-    )
-
-
-def load_data(fname, *, tlg="sim", scale=1):
-    with h5py.File(fname, "r") as f:
-        g = f[tlg]
-        block = g["block"][:]
-        block *= scale
-        return np.rad2deg(g["tth"][:]), block.astype("int32")
+from .config import AnalyzerCalibration, AnalyzerConfig, DetectorConfig
+from .file_io import dflt_config, load_config, load_data
 
 
 def reduce_raw(
@@ -146,35 +88,46 @@ def sum_mca(mca):
     return (point_data - point_data.min()) / np.ptp(point_data)
 
 
-def plot_raw(tth, mca, title):
+def plot_raw(
+    tth,
+    mca,
+    title,
+    *,
+    fig: matplotlib.figure.Figure | None = None,
+    label_max: bool = False,
+):
     row, col = mca.shape
     if (row,) != tth.shape:
         raise RuntimeError
 
-    fig, ax_d = plt.subplot_mosaic(
-        [["parasite", "mca"]], width_ratios=(1, 5), layout="constrained", sharey=True
-    )
+    if fig is None:
+        fig = plt.figure(layout="constrained")
+
+    ax_d = fig.subplot_mosaic([["parasite", "mca"]], width_ratios=(1, 5), sharey=True)
 
     fig.suptitle(title)
-    ax_d["mca"].imshow(
+    im = ax_d["mca"].imshow(
         mca, extent=(0, col, tth[0], tth[-1]), origin="lower", aspect="auto"
     )
     ax_d["mca"].set_xlabel("channel index")
     point_data = sum_mca(mca)
-    max_indx = np.argmax(point_data)
-    max_tth = tth[max_indx]
-    ax_d["parasite"].axhline(max_tth, color="k", alpha=0.5, zorder=0)
-    ax_d["parasite"].annotate(
-        f"{max_tth:.2f}°",
-        xy=(0, max_tth),
-        xytext=(0, -5),
-        textcoords="offset points",
-        ha="left",
-        va="top",
-    )
+    if label_max:
+        max_indx = np.argmax(point_data)
+        max_tth = tth[max_indx]
+        ax_d["parasite"].axhline(max_tth, color="k", alpha=0.5, zorder=0)
+        ax_d["parasite"].annotate(
+            f"{max_tth:.2f}°",
+            xy=(0, max_tth),
+            xytext=(0, -5),
+            textcoords="offset points",
+            ha="left",
+            va="top",
+        )
     ax_d["parasite"].plot(point_data, tth)
     ax_d["parasite"].set_xlabel("column sum (arb)")
     ax_d["parasite"].set_ylabel("arm angle (deg)")
+    cb = fig.colorbar(im, ax=ax_d["mca"])
+    cb.set_label("counts")
     return ax_d
 
 
@@ -285,3 +238,20 @@ def plot_ref(df, ax, scale_to_max=True, **kwargs):
         y /= y.max()
 
     ax.plot(x, y, **{"label": "reference", "scalex": False, **kwargs})
+
+
+def raw_grid(df, results):
+    fig = plt.figure(layout="constrained", figsize=(15, 15))
+    grid_size = int(np.ceil(np.sqrt(len(df))))
+    label_keys = set(find_varied_config([results[k][1] for k in df.index])) - {
+        ("scan", "stop"),
+        ("scan", "delta"),
+    }
+    df = df.sort_values(by=[".".join(lk) for lk in label_keys])
+    sub_figs = fig.subfigures(grid_size, grid_size)
+    for k, sfig in zip(df.index, sub_figs.ravel(), strict=False):
+        tth, block = load_data(k)
+        label = ", ".join(
+            f"{_k}: {df.loc[k][_k]}" for _k in (".".join(_) for _ in label_keys)
+        )
+        plot_raw(tth, block[:, 0, 0, :], label, fig=sfig)
