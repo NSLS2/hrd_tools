@@ -237,6 +237,5 @@ tiled = "*"
 h5py = "*"
 
 [tool.pixi.feature.tiled.tasks]
-tiled_init = { cmd = "tiled catalog init sqlite+aiosqlite:///catalog.db", cwd = "tiled" }
-tiled_serve = { cmd = "tiled serve config config.yml --public", cwd = "tiled", env = { TILED_SINGLE_USER_API_KEY = 'secret' } }
-tiled_register = { cmd = "tiled register http://localhost:8000 --prefix=raw --api-key=secret --adapter='application/x-hdf5=custom:SimAdapter' /nsls2/data3/projects/next_iiia_hrd/xrt_output", env = { PYTHONPATH = './tiled' } }
+tiled_serve = { cmd = "tiled serve config config.yml --public", cwd = "tiled", env = { TILED_API_KEY = 'secret' } }
+tiled_register = { cmd = "python register_helper.py /nsls2/data3/projects/next_iiia_hrd/xrt_output/", cwd = 'tiled', env = { TILED_API_KEY = 'secret' } }

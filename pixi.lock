@@ -4400,9 +4400,9 @@ packages:
   timestamp: 1738490268466
 - kind: pypi
   name: bad-tools
-  version: 0.1.dev118+g721ced3.d20250206
+  version: 0.1.dev119+gc1f498e.d20250206
   path: .
-  sha256: c043a9dd217b10d63382c98125606c9d9567961ceee11d0781c3b7d88f3ed760
+  sha256: 2341d46f1b45a8b63f4af230cb0e72a3d130657de713104558517467ec35ed79
   requires_dist:
   - xontrib-jedi ; extra == 'shell'
   - xontrib-vox ; extra == 'shell'

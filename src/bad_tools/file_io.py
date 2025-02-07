@@ -1,4 +1,5 @@
-from dataclasses import fields
+from collections import defaultdict
+from dataclasses import asdict, fields
 from pathlib import Path
 
 import h5py
@@ -48,6 +49,7 @@ def load_config_from_group(grp):
 
 
 def dflt_config(complete_config):
+    print(complete_config)
     return AnalyzerCalibration(
         detector_centers=(
             [complete_config.detector.transverse_size / 2] * complete_config.analyzer.N
@@ -66,3 +68,31 @@ def load_data(fname, *, tlg="sim", scale=1):
         block = g["block"][:]
         block *= scale
         return np.rad2deg(g["tth"][:]), block.astype("int32")
+
+
+def find_varied_config(configs):
+    out = defaultdict(set)
+    for c in configs:
+        if isinstance(c, dict):
+            cd = c
+        else:
+            print(type(c))
+            cd = asdict(c)
+        for k, sc in cd.items():
+            for f, v in sc.items():
+                out[(k, f)].add(v)
+    return [k for k, s in out.items() if len(s) > 1]
+
+def config_to_table(config):
+    df = pd.DataFrame(
+    {
+        k: {
+            f"{outer}.{inner}": v
+            for outer, cfg in asdict(v).items()
+            for inner, v in cfg.items()
+        }
+        for k, v in config.items()
+    }
+).T.infer_objects()
+    df["job"] = [str(_.name.partition("-")[0]) for _ in df.index]
+    return df

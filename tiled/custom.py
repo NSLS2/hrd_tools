@@ -20,8 +20,6 @@ from tiled.utils import node_repr, path_from_uri
 
 from bad_tools.file_io import load_config_from_group
 
-import os
-
 SWMR_DEFAULT = bool(int(os.getenv("TILED_HDF5_SWMR_DEFAULT", "0")))
 INLINED_DEPTH = int(os.getenv("TILED_HDF5_INLINED_CONTENTS_MAX_DEPTH", "7"))
 
@@ -64,7 +62,7 @@ class SimAdapter(collections.abc.Mapping[str, ArrayAdapter], IndexersMixin):
         metadata: JSON | None = None,
         specs: list[Spec] | None = None,
     ) -> None:
-        self._group = file['sim']
+        self._group = file["sim"]
         self.specs = specs or []
         self._metadata = metadata or {}
 

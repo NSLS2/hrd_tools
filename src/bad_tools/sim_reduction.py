@@ -1,5 +1,3 @@
-from collections import defaultdict
-from dataclasses import asdict
 from pathlib import Path
 
 import matplotlib
@@ -10,7 +8,7 @@ from matplotlib.figure import Figure
 from multianalyzer import Result
 
 from .config import AnalyzerCalibration, AnalyzerConfig, DetectorConfig
-from .file_io import dflt_config, load_config, load_data
+from .file_io import dflt_config, find_varied_config, load_config, load_data
 
 
 def reduce_raw(
@@ -168,6 +166,8 @@ def reduce_file(
     return ret, config, calib
 
 
+
+
 def reduce_and_plot(
     files: list[Path],
     # configs: dict[Path, tuple[CompleteConfig, AnalyzerCalibration]],
@@ -189,16 +189,6 @@ def reduce_and_plot(
             ax.plot(ret.tth[mask], 0.1 * j + normed[mask], label=label)
     ax.legend()
     return reduced, fig
-
-
-def find_varied_config(configs):
-    out = defaultdict(set)
-    for c in configs:
-        cd = asdict(c)
-        for k, sc in cd.items():
-            for f, v in sc.items():
-                out[(k, f)].add(v)
-    return [k for k, s in out.items() if len(s) > 1]
 
 
 def normalize_result(res: Result, scale_to_max=True):
