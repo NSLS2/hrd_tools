@@ -4,6 +4,7 @@ from pathlib import Path
 
 import h5py
 import numpy as np
+import pandas as pd
 
 from .config import (
     AnalyzerCalibration,
@@ -83,16 +84,17 @@ def find_varied_config(configs):
                 out[(k, f)].add(v)
     return [k for k, s in out.items() if len(s) > 1]
 
+
 def config_to_table(config):
     df = pd.DataFrame(
-    {
-        k: {
-            f"{outer}.{inner}": v
-            for outer, cfg in asdict(v).items()
-            for inner, v in cfg.items()
+        {
+            k: {
+                f"{outer}.{inner}": v
+                for outer, cfg in asdict(v).items()
+                for inner, v in cfg.items()
+            }
+            for k, v in config.items()
         }
-        for k, v in config.items()
-    }
-).T.infer_objects()
+    ).T.infer_objects()
     df["job"] = [str(_.name.partition("-")[0]) for _ in df.index]
     return df

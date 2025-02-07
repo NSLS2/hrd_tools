@@ -166,8 +166,6 @@ def reduce_file(
     return ret, config, calib
 
 
-
-
 def reduce_and_plot(
     files: list[Path],
     # configs: dict[Path, tuple[CompleteConfig, AnalyzerCalibration]],
