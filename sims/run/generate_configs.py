@@ -44,7 +44,8 @@ def get_defaults():
                 cry_width=102,
                 cry_depth=54,
                 N=1,
-                acceptance_angle=0.05651551,
+                # will be set when buliding end station
+                acceptance_angle=0,
                 thickness=1,
             ),
             "scan": SimScanConfig(start=min_tth, stop=max_tth, delta=1e-4),
@@ -71,7 +72,7 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
 
 
 if __name__ == "__main__":
-    cycle = cycler("source.E_hwhm", np.array([.1, 1, 2, 5]) * 1.4e-4)
+    cycle = cycler("source.E_hwhm", np.array([0.1, 1, 2, 5]) * 1.4e-4)
     configs = convert_cycler(cycle)
     config_path = Path("configs")
     config_path.mkdir(exist_ok=True)

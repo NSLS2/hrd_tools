@@ -1,5 +1,5 @@
 import functools
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Self
 
 import numpy as np
@@ -31,8 +31,9 @@ class Endstation:
         sim: SimConfig,
     ) -> Self:
         crystalSi01 = rmats.CrystalSi(t=analyzer.thickness)
-
         theta_b = _bragg(crystalSi01, source.E_incident)
+        analyzer = replace(analyzer, acceptance_angle=np.rad2deg(theta_b))
+
         arm_tth = np.deg2rad(15)
         beamLine = raycing.BeamLine()
 
