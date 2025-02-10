@@ -16,11 +16,11 @@ import pandas as pd
 from multianalyzer import Result
 from scipy.interpolate import splrep, sproot
 
-from bad_tools.config import (
+from hrd_tools.config import (
     AnalyzerConfig,
     CompleteConfig,
 )
-from bad_tools.sim_reduction import (
+from hrd_tools.sim_reduction import (
     find_varied_config,
     load_all_config,
     plot_reduced,

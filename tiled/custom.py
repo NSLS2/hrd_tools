@@ -18,7 +18,7 @@ from tiled.structures.data_source import DataSource
 from tiled.type_aliases import JSON
 from tiled.utils import node_repr, path_from_uri
 
-from bad_tools.file_io import load_config_from_group
+from hrd_tools.file_io import load_config_from_group
 
 SWMR_DEFAULT = bool(int(os.getenv("TILED_HDF5_SWMR_DEFAULT", "0")))
 INLINED_DEPTH = int(os.getenv("TILED_HDF5_INLINED_CONTENTS_MAX_DEPTH", "7"))

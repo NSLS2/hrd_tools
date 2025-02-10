@@ -6,14 +6,14 @@ import numpy as np
 import tomllib
 import tqdm
 
-from bad_tools.config import (
+from hrd_tools.config import (
     AnalyzerConfig,
     DetectorConfig,
     SimConfig,
     SimScanConfig,
     SourceConfig,
 )
-from bad_tools.xrt.endstation import Endstation
+from hrd_tools.xrt.endstation import Endstation
 
 
 def scan_to_file(

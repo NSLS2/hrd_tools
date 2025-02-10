@@ -36,7 +36,7 @@ class CrystalChannel(GrandDerivedSignal):
 
 
 class Crystal(Device):
-    """A class to simulate a single analyzer crystal on the BAD detectors."""
+    """A class to simulate a single analyzer crystal on the HRD detectors."""
 
     offset = _Cpt(Signal, kind="config")
     value = _Cpt(CrystalChannel, "angle", kind="hinted", lazy=True, name="")
@@ -104,7 +104,7 @@ def make_detector(
         The function (spectrum) that the detector is simulating.
     """
     cls = type(
-        "BADSimDetector",
+        "HRDSimDetector",
         (DetectorBase,),
         {
             f"ch{n:02d}": _Cpt(Crystal, offset=offset)

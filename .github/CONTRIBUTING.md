@@ -71,7 +71,7 @@ pytest
 Use pytest-cov to generate coverage reports:
 
 ```bash
-pytest --cov=bad_tools
+pytest --cov=hrd_tools
 ```
 
 # Building docs

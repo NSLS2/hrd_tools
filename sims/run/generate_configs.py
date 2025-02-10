@@ -7,7 +7,7 @@ import numpy as np
 import tomli_w
 from cycler import Cycler, cycler
 
-from bad_tools.config import (
+from hrd_tools.config import (
     AnalyzerConfig,
     CompleteConfig,
     DetectorConfig,

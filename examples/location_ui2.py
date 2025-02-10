@@ -3,7 +3,7 @@ import numpy as np
 from bluesky import RunEngine
 from bluesky.callbacks.best_effort import BestEffortCallback
 
-from bad_tools.sim import make_sample_rack
+from hrd_tools.sim import make_sample_rack
 
 rng = np.random.default_rng(12345)
 

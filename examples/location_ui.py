@@ -3,7 +3,7 @@ from random import randint
 import matplotlib.pyplot as plt
 import numpy as np
 
-from bad_tools.search import LocRange, Sample, SampleLocation, SampleViz
+from hrd_tools.search import LocRange, Sample, SampleLocation, SampleViz
 
 N = 15
 

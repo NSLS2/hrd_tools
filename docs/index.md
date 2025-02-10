@@ -1,4 +1,4 @@
-# bad_tools
+# hrd_tools
 
 ```{toctree}
 :maxdepth: 2

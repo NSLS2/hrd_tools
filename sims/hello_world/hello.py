@@ -6,8 +6,8 @@ import numpy as np
 import xrt.backends.raycing.run as rrun
 import xrt.backends.raycing.sources_beams as rsources_beams
 
-from bad_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
-from bad_tools.xrt.endstation import Endstation
+from hrd_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
+from hrd_tools.xrt.endstation import Endstation
 
 # copy ESRF geometry as baseline
 config_mac = AnalyzerConfig(

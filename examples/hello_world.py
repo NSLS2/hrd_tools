@@ -4,7 +4,7 @@ import numpy as np
 from bluesky import RunEngine
 from bluesky.callbacks.best_effort import BestEffortCallback
 
-from bad_tools.sim import make_detector
+from hrd_tools.sim import make_detector
 
 bec = BestEffortCallback()
 

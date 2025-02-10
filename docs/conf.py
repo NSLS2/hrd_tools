@@ -1,9 +1,9 @@
 import importlib.metadata
 
-project = "bad_tools"
+project = "hrd_tools"
 copyright = "2023, Thomas A Caswell"
 author = "Thomas A Caswell"
-version = release = importlib.metadata.version("bad_tools")
+version = release = importlib.metadata.version("hrd_tools")
 
 extensions = [
     "myst_parser",

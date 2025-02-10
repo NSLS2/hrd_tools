@@ -6,8 +6,8 @@ email: tcaswell@bnl.gov
 full_name: Thomas A Caswell
 license: BSD
 org: tacaswell
-project_name: bad_tools
+project_name: hrd_tools
 project_short_description:
-  Tools for the BAD beamline as part of NEXT-III at NSLS-II.
-url: https://github.com/tacaswell/bad_tools
+  Tools for the HRD beamline as part of NEXT-III at NSLS-II.
+url: https://github.com/tacaswell/hrd_tools
 vcs: true

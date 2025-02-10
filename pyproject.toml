@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 
 [project]
-name = "bad_tools"
+name = "hrd_tools"
 authors = [{ name = "Thomas A Caswell", email = "tcaswell@bnl.gov" }]
-description = "Tools for the BAD beamline as part of NEXT-III at NSLS-II."
+description = "Tools for the HRD beamline as part of NEXT-III at NSLS-II."
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -35,14 +35,14 @@ reduction = []
 shell = ["xontrib-jedi", "xontrib-vox"]
 
 [project.urls]
-Homepage = "https://github.com/tacaswell/bad_tools"
-"Bug Tracker" = "https://github.com/tacaswell/bad_tools/issues"
-Discussions = "https://github.com/tacaswell/bad_tools/discussions"
-Changelog = "https://github.com/tacaswell/bad_tools/releases"
+Homepage = "https://github.com/tacaswell/hrd_tools"
+"Bug Tracker" = "https://github.com/tacaswell/hrd_tools/issues"
+Discussions = "https://github.com/tacaswell/hrd_tools/discussions"
+Changelog = "https://github.com/tacaswell/hrd_tools/releases"
 
 
 [tool.setuptools_scm]
-write_to = "src/bad_tools/_version.py"
+write_to = "src/hrd_tools/_version.py"
 
 
 [tool.pytest.ini_options]
@@ -55,7 +55,7 @@ testpaths = ["tests"]
 
 
 [tool.coverage]
-run.source = ["bad_tools"]
+run.source = ["hrd_tools"]
 port.exclude_lines = ['pragma: no cover', '\.\.\.', 'if typing.TYPE_CHECKING:']
 
 [tool.mypy]
@@ -71,7 +71,7 @@ disallow_incomplete_defs = false
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = "bad_tools.*"
+module = "hrd_tools.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 
@@ -84,7 +84,7 @@ ignore_missing_imports = true
 src = ["src"]
 exclude = []
 # Uncomment if using a _compat.typing backport
-# typing-modules = ["bad_tools._compat.typing"]
+# typing-modules = ["hrd_tools._compat.typing"]
 
 [tool.ruff.lint]
 select = [
@@ -147,7 +147,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "win-64"]
 
 [tool.pixi.pypi-dependencies]
-bad_tools = { path = ".", editable = true }
+hrd_tools = { path = ".", editable = true }
 
 [tool.pixi.environments]
 default = { features = ["reduction"], solve-group = "default" }

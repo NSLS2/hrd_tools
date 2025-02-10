@@ -8,7 +8,7 @@ from tiled.client.register import dict_or_none, ensure_uri
 from tiled.structures.core import StructureFamily
 from tiled.structures.data_source import Asset, DataSource, Management
 
-from bad_tools.file_io import find_varied_config
+from hrd_tools.file_io import find_varied_config
 
 if __name__ == "__main__":
     base_path = pathlib.Path(sys.argv[1])
