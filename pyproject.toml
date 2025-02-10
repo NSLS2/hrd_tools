@@ -232,7 +232,7 @@ ruff = "*"
 [tool.pixi.feature.lint.tasks]
 check = "ruff check --fix --exclude=sims"
 format = "ruff format --exclude=sims"
-lint = { depends_on = ["format", "check"] }
+lint = { depends-on = ["format", "check"] }
 
 [tool.pixi.feature.tiled.dependencies]
 tiled = "*"
