@@ -1104,7 +1104,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zlib-ng-2.2.3-h7955e40_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstandard-0.23.0-py312hef9b889_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.6-ha6fb4c9_0.conda
-      - pypi: git+https://github.com/kif/multianalyzer.git@6ee69dd0b332b42bca1a674d24c04aeaae42d676
+      - pypi: git+https://github.com/kif/multianalyzer.git@8b4d212ed4371e2c1a659bd502ec889804555d07
       - pypi: .
       win-64:
       - conda: https://conda.anaconda.org/conda-forge/win-64/_libavif_api-1.1.1-h57928b3_2.conda
@@ -1451,7 +1451,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/zlib-ng-2.2.3-hbb528cf_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstandard-0.23.0-py312h7606c53_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.6-h0ea2cb4_0.conda
-      - pypi: git+https://github.com/kif/multianalyzer.git@6ee69dd0b332b42bca1a674d24c04aeaae42d676
+      - pypi: git+https://github.com/kif/multianalyzer.git@8b4d212ed4371e2c1a659bd502ec889804555d07
       - pypi: .
   dev:
     channels:
@@ -1980,7 +1980,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-3.21.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstandard-0.23.0-py312hef9b889_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.6-ha6fb4c9_0.conda
-      - pypi: git+https://github.com/kklmn/xrt.git@2a6596100b8a3789e5e37d52853b6c84f0dd0b97
+      - pypi: git+https://github.com/kklmn/xrt.git@7c8daa44493fe4d46823a97c8796859213a9c3b3
       - pypi: .
       win-64:
       - conda: https://conda.anaconda.org/conda-forge/win-64/_openmp_mutex-4.5-2_gnu.conda
@@ -2139,7 +2139,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstandard-0.23.0-py312h7606c53_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.6-h0ea2cb4_0.conda
       - pypi: https://files.pythonhosted.org/packages/e0/d3/39190c40a68defd19b99c1082dd7455543a52283803bfa111b0e45fae968/siphash24-1.7-cp312-cp312-win_amd64.whl
-      - pypi: git+https://github.com/kklmn/xrt.git@2a6596100b8a3789e5e37d52853b6c84f0dd0b97
+      - pypi: git+https://github.com/kklmn/xrt.git@7c8daa44493fe4d46823a97c8796859213a9c3b3
       - pypi: .
   lint:
     channels:
@@ -3079,7 +3079,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-3.21.0-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstandard-0.23.0-py312hef9b889_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.6-ha6fb4c9_0.conda
-      - pypi: git+https://github.com/kklmn/xrt.git@2a6596100b8a3789e5e37d52853b6c84f0dd0b97
+      - pypi: git+https://github.com/kklmn/xrt.git@7c8daa44493fe4d46823a97c8796859213a9c3b3
       - pypi: .
       win-64:
       - conda: https://conda.anaconda.org/conda-forge/win-64/_openmp_mutex-4.5-2_gnu.conda
@@ -3217,7 +3217,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstandard-0.23.0-py312h7606c53_1.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/zstd-1.5.6-h0ea2cb4_0.conda
       - pypi: https://files.pythonhosted.org/packages/e0/d3/39190c40a68defd19b99c1082dd7455543a52283803bfa111b0e45fae968/siphash24-1.7-cp312-cp312-win_amd64.whl
-      - pypi: git+https://github.com/kklmn/xrt.git@2a6596100b8a3789e5e37d52853b6c84f0dd0b97
+      - pypi: git+https://github.com/kklmn/xrt.git@7c8daa44493fe4d46823a97c8796859213a9c3b3
       - pypi: .
 packages:
 - kind: conda
@@ -4398,16 +4398,6 @@ packages:
   - pkg:pypi/babel?source=compressed-mapping
   size: 6938256
   timestamp: 1738490268466
-- kind: pypi
-  name: bad-tools
-  version: 0.1.dev119+gc1f498e.d20250206
-  path: .
-  sha256: 2341d46f1b45a8b63f4af230cb0e72a3d130657de713104558517467ec35ed79
-  requires_dist:
-  - xontrib-jedi ; extra == 'shell'
-  - xontrib-vox ; extra == 'shell'
-  requires_python: '>=3.10'
-  editable: true
 - kind: conda
   name: blosc
   version: 1.21.6
@@ -7447,6 +7437,16 @@ packages:
   - pkg:pypi/hpack?source=hash-mapping
   size: 30731
   timestamp: 1737618390337
+- kind: pypi
+  name: hrd-tools
+  version: 0.1.dev126+gfbbfd76.d20250211
+  path: .
+  sha256: 589c44316f41727121926b8fbeec3ea72b8e22d8e807fd0335f4d1eef3ca834b
+  requires_dist:
+  - xontrib-jedi ; extra == 'shell'
+  - xontrib-vox ; extra == 'shell'
+  requires_python: '>=3.10'
+  editable: true
 - kind: conda
   name: httpcore
   version: 1.0.7
@@ -12551,7 +12551,7 @@ packages:
 - kind: pypi
   name: multianalyzer
   version: 0.7.0
-  url: git+https://github.com/kif/multianalyzer.git@6ee69dd0b332b42bca1a674d24c04aeaae42d676
+  url: git+https://github.com/kif/multianalyzer.git@8b4d212ed4371e2c1a659bd502ec889804555d07
   requires_dist:
   - numpy
   - h5py
@@ -19386,7 +19386,7 @@ packages:
 - kind: pypi
   name: xrt
   version: 1.6.1
-  url: git+https://github.com/kklmn/xrt.git@2a6596100b8a3789e5e37d52853b6c84f0dd0b97
+  url: git+https://github.com/kklmn/xrt.git@7c8daa44493fe4d46823a97c8796859213a9c3b3
   requires_dist:
   - numpy>=1.8.0
   - scipy>=0.17.0
