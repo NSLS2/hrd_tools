@@ -207,6 +207,7 @@ def plot_reduced(
     *,
     label: str | None = None,
     scale_to_max: bool = False,
+    orientation: str = 'h'
     **kwargs,
 ):
     if ax is None:
@@ -216,7 +217,10 @@ def plot_reduced(
         if label is not None:
             label = f"{label} ({j})"
         mask = np.isfinite(normed)
-        ax.plot(res.tth[mask], normed[mask], label=label, **kwargs)
+        if orientation == 'h':
+            ax.plot(res.tth[mask], normed[mask], label=label, **kwargs)
+        elif orientation == 'v':
+            ax.plot(normed[mask], res.tth[mask], label=label, **kwargs)
 
 
 def plot_ref(df, ax, scale_to_max=True, **kwargs):

@@ -36,6 +36,8 @@ if __name__ == "__main__":
                         )
                     ],
                 )
+                if adapter['tth'].structure().shape[0] == 0:
+                    continue
                 run, _, oid = output_file.stem.partition("-")
                 tiled_objs_by_run[run].append((adapter, ds, oid))
             for run, results in tiled_objs_by_run.items():
