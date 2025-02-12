@@ -207,7 +207,7 @@ def plot_reduced(
     *,
     label: str | None = None,
     scale_to_max: bool = False,
-    orientation: str = 'h'
+    orientation: str = 'h',
     **kwargs,
 ):
     if ax is None:
