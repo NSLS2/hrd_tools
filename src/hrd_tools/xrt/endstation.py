@@ -9,9 +9,9 @@ import xrt.backends.raycing.materials as rmats
 import xrt.backends.raycing.oes as roes
 import xrt.backends.raycing.screens as rscreens
 
-from .config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
-from .xrt.sources import XrdSource
-from .xrt.stops import RectangularBeamstop
+from ..config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
+from .sources import XrdSource
+from .stops import RectangularBeamstop
 
 
 @dataclass
