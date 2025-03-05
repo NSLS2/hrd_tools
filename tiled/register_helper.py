@@ -36,24 +36,38 @@ if __name__ == "__main__":
                         )
                     ],
                 )
-                if adapter['tth'].structure().shape[0] == 0:
+                if adapter["tth"].structure().shape[0] == 0:
                     continue
                 run, _, oid = output_file.stem.partition("-")
                 tiled_objs_by_run[run].append((adapter, ds, oid))
             for run, results in tiled_objs_by_run.items():
                 results.sort(key=lambda x: int(x[-1]))
                 all_config = [r[0].metadata() for r in results]
-                varied = find_varied_config(all_config)
+                varied = [
+                    _
+                    for _ in find_varied_config(all_config)
+                    if _ not in {("scan", "start"), ("scan", "stop"), ("scan", "delta")}
+                ]
+
                 static = {}
 
+                desc = all_config[0]["scan"]["short_description"]
+                if desc == "":
+                    desc = f"Varied {['.'.join(_) for _ in varied]}"
+
                 for k, sc in all_config[0].items():
+                    if k == "scan":
+                        continue
                     static[k] = {}
+
                     for f, v in sc.items():
                         if (k, f) in varied:
                             continue
                         static[k][f] = v
                 varied_values = {oid: {} for *_, oid in results}
                 for k, f in varied:
+                    if k == "scan":
+                        continue
                     for (*_, oid), config in zip(results, all_config, strict=True):
                         varied_values[oid].setdefault(k, {})
                         varied_values[oid][k][f] = config[k][f]
@@ -65,6 +79,8 @@ if __name__ == "__main__":
                         "varied_key": [".".join(_) for _ in varied],
                         "static_values": static,
                         "varied_values": varied_values,
+                        "short_descrption": desc,
+                        "scan": all_config[0]["scan"],
                     },
                     data_sources=[],
                 )

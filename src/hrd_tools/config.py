@@ -80,6 +80,8 @@ class SimScanConfig:
     stop: float
     # delta between positions in deg
     delta: float
+    # short description about why we did this
+    short_description: str = ""
 
 
 @dataclass(frozen=True)
