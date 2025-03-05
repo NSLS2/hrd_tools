@@ -54,14 +54,13 @@ def scan_to_file(
 
 def dump_coro(fname, cache_rate, *, tlg="sim"):
     bl, scan_config = yield cache_rate
-    with h5py.File(fname, "x", libver='latest') as f:
-        
+    with h5py.File(fname, "x", libver="latest") as f:
         g = f.create_group(tlg)
         for fld in fields(bl):
             if is_dataclass(fld.type):
                 cfg_g = g.create_group(f"{fld.name}_config")
                 cfg_g.attrs.update(asdict(getattr(bl, fld.name)))
-        cfg_g = g.create_group('scan_config')
+        cfg_g = g.create_group("scan_config")
         cfg_g.attrs.update(asdict(scan_config))
         g.create_dataset(
             "block",
@@ -82,7 +81,7 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
         f.swmr_mode = True
         while True:
             payload = yield
-    
+
             g = f[tlg]
 
             if payload[0].shape[0] != payload[1].shape[0]:
