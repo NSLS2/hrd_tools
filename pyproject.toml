@@ -126,6 +126,7 @@ extend-ignore = [
   "C408",   # using dict() is fine
   "NPY002", # allow the old numpy random generator
   "PD901",  # df is a fine variable name
+  "EM102",  # use an fstring in an exception if you want
 ]
 unfixable = [
   "T20",  # Removes print statements
@@ -170,6 +171,7 @@ cycler = ">=0.12.1,<0.13"
 distro = ">=1.9.0,<2"
 tomli-w = ">=1.2.0,<2"
 python = ">=3.11.11,<3.14"
+jinja2 = ">=3.1.5,<4"
 
 
 [tool.pixi.feature.dev.dependencies]
