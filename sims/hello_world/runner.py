@@ -24,7 +24,7 @@ def scan_to_file(
 ):
     cache_rate = writer.send(None)
     with contextlib.closing(writer):
-        writer.send(bl)
+        writer.send(bl, scan_config)
         start, stop, delta = np.deg2rad(
             [scan_config.start, scan_config.stop, scan_config.delta]
         )
@@ -53,13 +53,16 @@ def scan_to_file(
 
 
 def dump_coro(fname, cache_rate, *, tlg="sim"):
-    bl = yield cache_rate
-    with h5py.File(fname, "x") as f:
+    bl, scan_config = yield cache_rate
+    with h5py.File(fname, "x", libver='latest') as f:
+        
         g = f.create_group(tlg)
         for fld in fields(bl):
             if is_dataclass(fld.type):
                 cfg_g = g.create_group(f"{fld.name}_config")
                 cfg_g.attrs.update(asdict(getattr(bl, fld.name)))
+        cfg_g = g.create_group('scan_config')
+        cfg_g.attrs.update(asdict(scan_config))
         g.create_dataset(
             "block",
             chunks=(cache_rate, bl.analyzer.N, 1, bl.detector.transverse_size),
@@ -76,9 +79,10 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
             shuffle=True,
             compression="gzip",
         )
-    while True:
-        payload = yield
-        with h5py.File(fname, "a") as f:
+        f.swmr_mode = True
+        while True:
+            payload = yield
+    
             g = f[tlg]
 
             if payload[0].shape[0] != payload[1].shape[0]:
@@ -89,6 +93,7 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
                 cur_len = ds.shape[0]
                 ds.resize(cur_len + data.shape[0], axis=0)
                 ds[cur_len:] = data
+                ds.flush()
 
 
 def to_block(data, *, sum_col=True):
