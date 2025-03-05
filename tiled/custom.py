@@ -135,7 +135,7 @@ class SimAdapter(collections.abc.Mapping[str, ArrayAdapter], IndexersMixin):
         value = self._group[key]
         chunks = value.chunks
         shape = value.shape
-        c0 = min(20*chunks[0], shape[0])
+        c0 = min(20 * chunks[0], shape[0])
 
         md = dict(value.attrs)
         if value.dtype == numpy.dtype("O"):
@@ -159,7 +159,7 @@ class SimAdapter(collections.abc.Mapping[str, ArrayAdapter], IndexersMixin):
                     return ArrayAdapter.from_array(arr, metadata=md)
             return ArrayAdapter.from_array(numpy.array([]), metadata=md)
         return ArrayAdapter.from_array(value, metadata=md, chunks=(c0, *chunks[1:]))
-    
+
     def __len__(self) -> int:
         return 2
 
