@@ -18,25 +18,26 @@ from hrd_tools.config import (
 
 
 def get_defaults():
-    min_tth = 7.3
-    max_tth = 8.7
+    min_tth = 20
+    max_tth = 20.5
     return CompleteConfig(
         **{
             "source": SourceConfig(
                 E_incident=29_400,
                 pattern_path="/nsls2/users/tcaswell/11bmb_7871_Y1.xye",
-                dx=4,
-                dz=0.01,
-                dy=0,
+                dx=1,
+                dz=1,
+                dy=1,
                 delta_phi=16,
                 E_hwhm=1.4e-4,
-                h_div=np.rad2deg(0),
-                v_div=np.rad2deg(0),
+                h_div=np.rad2deg(120e-6),
+                v_div=np.rad2deg(100e-6),
                 max_tth=max_tth,
                 min_tth=min_tth,
+
             ),
-            "sim": SimConfig(nrays=1_000_000),
-            "detector": DetectorConfig(pitch=0.055, transverse_size=512, height=1),
+            "sim": SimConfig(nrays=500_000),
+            "detector": DetectorConfig(pitch=0.055, transverse_size=512, height=.055*448),
             "analyzer": AnalyzerConfig(
                 R=300,
                 Rd=115,
@@ -47,6 +48,7 @@ def get_defaults():
                 # will be set when buliding end station
                 acceptance_angle=0,
                 thickness=1,
+                roll=0,
             ),
             "scan": SimScanConfig(start=min_tth, stop=max_tth, delta=1e-4),
         }
@@ -72,7 +74,9 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
 
 
 if __name__ == "__main__":
-    cycle = cycler("source.E_hwhm", np.array([0.1, 1, 2, 5]) * 1.4e-4)
+    cycle = (cycler("source.dx", [1]) + 
+             cycler("source.dz", [.01]) +  
+             cycler("source.dy", [.5])) * (cycler('source.h_div', [0, np.rad2deg(120e-6)] ) + cycler('source.v_div', [0, np.rad2deg(100e-6)] ))
     configs = convert_cycler(cycle)
     config_path = Path("configs")
     config_path.mkdir(exist_ok=True)
