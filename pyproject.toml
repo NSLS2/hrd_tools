@@ -206,6 +206,7 @@ ipympl = ">=0.9.6,<0.10"
 jupytext = ">=1.16.6,<2"
 pandas = '*'
 tiled = ">=0.1.0b17"
+pymatgen = ">2025"
 
 [tool.pixi.feature.reduction.target.linux-64.dependencies]
 pocl = "*"
