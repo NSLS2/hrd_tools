@@ -26,7 +26,7 @@ def get_defaults():
         **{
             "source": SourceConfig(
                 E_incident=29_400,
-                pattern_path="/nsls2/users/tcaswell/11bmb_7871_Y1.xye",
+                pattern_path="/nsls2/data3/projects/next_iiia_hrd/sim_input/11bmb_7871_Y1.xye",
                 dx=1,
                 dz=1,
                 dy=1,
