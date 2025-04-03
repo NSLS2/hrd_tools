@@ -33,9 +33,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from multianalyzer import Result
-from scipy.interpolate import splrep, sproot
+from scipy.interpolate import splrep, sproot, splev
 
-from hrd_tools.config import AnalyzerConfig, CompleteConfig, AnalyzerCalibration
+from hrd_tools.config import (
+    AnalyzerConfig,
+    CompleteConfig,
+    AnalyzerCalibration,
+    SimScanConfig,
+)
 from hrd_tools.sim_reduction import (
     find_varied_config,
     plot_reduced,
@@ -43,7 +48,6 @@ from hrd_tools.sim_reduction import (
     reduce_file,
     plot_raw,
     load_data,
-    raw_grid,
     reduce_raw,
 )
 from hrd_tools.file_io import load_all_config, dflt_config
@@ -177,6 +181,7 @@ def plot_reduced_cat(
     results: dict[Path, tuple[Result, CompleteConfig, AnalyzerConfig]],
     title=None,
     reference_pattern=True,
+    xlim=None,
     *,
     config_filter=None,
 ):
@@ -199,7 +204,7 @@ def plot_reduced_cat(
             continue
         (res, config, _) = results[(cat.uri, k)]
         label = " ".join(
-            f"{sec}.{parm}={unit_convert[(sec, parm)][0](getattr(getattr(config, sec), parm)):.3g} {unit_convert[(sec, parm)][1]}"
+            f"{parm}={unit_convert[(sec, parm)][0](getattr(getattr(config, sec), parm)):.3g} {unit_convert[(sec, parm)][1]}"
             for sec, parm in label_keys
         )
         plot_reduced(res, ax=ax, scale_to_max=True, label=label, alpha=0.5)
@@ -208,8 +213,11 @@ def plot_reduced_cat(
             cat.metadata["static_values"]["source"]["pattern_path"]
         )
         plot_ref(reference_data, ax, scalex=False, linestyle=":")
-    ax.set_xlim(7.5, 8.3)
-    ax.legend()
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+    ax.set_ylabel("I (arb)")
+    ax.set_xlabel(r"2$\theta$ (deg)")
+    ax.legend(loc="upper left")
     return fig
 
 
@@ -220,7 +228,7 @@ def plot_reduced_cat(
 # plot_reduced_cat(c.values_indexer[-3], out, reference_pattern=reference_pattern)
 
 # %%
-c2 = c_roll.items_indexer[0][1]
+c2 = c_roll.items_indexer[1][1]
 out2 = reduce_catalog(c2, phi_max=5)
 
 # %%
@@ -269,7 +277,10 @@ def raw_grid(cat, results, config_filter=None):
             ("source", "v_div"): (lambda x: np.deg2rad(x) * 1e3, "mrad"),
         }
     )
-    sub_figs = fig.subfigures(grid_size, grid_size - 1)
+    grid_size2 = grid_size
+    while (grid_size * (grid_size2 - 1)) >= len(cat):
+        grid_size2 -= 1
+    sub_figs = fig.subfigures(grid_size, grid_size2)
     for (k, sim), sfig in zip(cat.items(), sub_figs.ravel(), strict=False):
         tth = np.rad2deg(sim["tth"].read())
         block = sim["block"].read().astype("int32")
@@ -294,7 +305,8 @@ def base64ify(fig):
     buffer = io.BytesIO()
     fig.savefig(buffer, format="png")
     buffer.seek(0)
-    return base64.b64encode(buffer.read()).decode()
+
+    return f"data:image/png;base64,{base64.b64encode(buffer.read()).decode()}"
 
 
 # %%
@@ -302,8 +314,10 @@ def peak_fwhm(tth, normed, limits: tuple[float, float]):
     slc = slice(*np.searchsorted(tth, limits))
     tth = tth[slc]
     normed = normed[slc]
+    if len(tth) == 0:
+        return np.array([])
     half_max = np.max(normed) / 2.0
-    s = splrep(tth, normed - half_max, k=3)
+    s = splrep(tth, normed - half_max, k=3, s=np.max(normed) * 0.01)
     return np.diff(sproot(s))
 
 
@@ -325,7 +339,7 @@ def cat_to_fwhm(
         tth = res.tth
         (normed,) = normalize_result(res)
         fwhm = peak_fwhm(tth, normed, limits=limits)
-        if len(fwhm) > 1:
+        if len(fwhm) != 1:
             continue
         ret[key] = float(fwhm)
 
@@ -338,33 +352,7 @@ def cat_to_fwhm(
 
 # %%
 
-
-def plot_cat_fwhm_1d(cat, results, peak_windows: list[tuple[float, float]]):
-    fwhm = []
-    for limits in peak_windows:
-        fwhm.append(cat_to_fwhm(cat, results, limits))
-
-    # flatten the varied values
-    varied = {
-        k: val
-        for k, v in cat.metadata["varied_values"].items()
-        for _, vv in v.items()
-        for _, val in vv.items()
-    }
-    print(varied)
-
-    fig, ax = plt.subplots(layout="constrained")
-    for peak_fwhm, ref_peak in fwhm:
-        x = [varied[k] for k in peak_fwhm]
-        y = list(peak_fwhm.values())
-        ax.plot(x, y, "o")
-        ax.axhline(ref_peak, linestyle="--")
-    return fig, fwhm
-
-
-# %%
-
-plot_cat_fwhm_1d(c2, out2, [(7.9, 8.1)])
+plot_cat_fwhm_1d(c2, out2, [(7.65, 7.72), (7.975, 8.1)])
 
 # %%
 from typing import Any
@@ -423,6 +411,26 @@ def aggregate_min_max(
 
 
 # %%
+import multianalyzer
+from dataclasses import dataclass
+
+
+@dataclass
+class Reduced:
+    cat: tiled.client.container.Container
+    reduced: dict[tuple[str, str], tuple[multianalyzer.file_io.Result, CompleteConfig]]
+    phi_max: float
+
+    @classmethod
+    def from_cat(cls, cat, phi_max):
+        return cls(cat, reduce_catalog(cat, phi_max=phi_max), phi_max)
+
+
+# %%
+
+r = Reduced.from_cat(c_roll.items_indexer[1][1], 45)
+
+# %%
 
 from jinja2 import Template
 
@@ -473,11 +481,18 @@ template = Template(template_str)
 
 
 # %%
-def generate_report(cat, integrations):
+def generate_report(r: Reduced, fname="test.md"):
+    cat = r.cat
+    integrations = r.reduced
+    scan_md = cat.metadata["scan"]
     data = {
         "title": "Simulation Report",
         "description": cat.metadata["short_descrption"],
-        "static_parameters": cat.metadata["static_values"],
+        "static_parameters": {
+            **cat.metadata["static_values"],
+            "scan": scan_md,
+            "integration": {"phi_max": r.phi_max},
+        },
         "scanned_parameters": [
             {"name": k, "range": f"{vmin} - {vmax}"}
             for k, (vmin, vmax) in aggregate_min_max(
@@ -487,17 +502,73 @@ def generate_report(cat, integrations):
         "images": [
             {
                 "caption": "integrations",
-                "filename": f"data:image/png;base64,{base64ify(plot_reduced_cat(cat, integrations, reference_pattern=True))}",
+                "filename": (
+                    base64ify(
+                        plot_reduced_cat(
+                            cat,
+                            integrations,
+                            reference_pattern=True,
+                            xlim=(scan_md["start"], scan_md["stop"]),
+                        )
+                    )
+                ),
             },
-            # {"caption": "Full Scans", "filename": f"data:image/png;base64,{base64ify(raw_grid(cat, integrations))}"},
+            {
+                "caption": "Full Scans",
+                "filename": base64ify(raw_grid(cat, integrations)),
+            },
+            {
+                "caption": "FWHM",
+                "filename": base64ify(
+                    plot_cat_fwhm_1d(cat, integrations, [(7.65, 7.72), (7.975, 8.1)])[0]
+                ),
+            },
         ],
     }
 
-    with open("test.md", "w") as fout:
+    with open(fname, "w") as fout:
         fout.write(template.render(data))
 
 
-generate_report(c2, out2)
 # %%
-c2["1196396"]["0"].metadata
+
+
+def plot_cat_fwhm_1d(cat, results, peak_windows: list[tuple[float, float]]):
+    fwhm = []
+    for limits in peak_windows:
+        fwhm.append(cat_to_fwhm(cat, results, limits))
+
+    # flatten the varied values
+    varied = {
+        k: {f"{ok}.{ik}": val for ok, config in v.items() for ik, val in config.items()}
+        for k, v in cat.metadata["varied_values"].items()
+    }
+    first = next(iter(varied.values()))
+    print(first)
+    fig = plt.figure(layout="constrained")
+    ax_lst = fig.subplots(len(first), squeeze=False).ravel()
+    for ax, key in zip(ax_lst, first, strict=True):
+        for j, (marker, (peak_fwhm, ref_peak)) in enumerate(
+            zip("ox^s", fwhm, strict=False)
+        ):
+            x = [varied[scan][key] for scan in peak_fwhm]
+            y = list(peak_fwhm.values())
+            (ln,) = ax.plot(x, y, marker, label=f"peak {j + 1}")
+        ax.axhline(ref_peak, linestyle="--", color=ln.get_color())
+        ax.legend()
+        ax.set_xlabel(key)
+        ax.set_ylabel("fwhm")
+
+    return fig, fwhm
+
+
+# %%
+
+# r = Reduced.from_cat(c.values_indexer[-3], 45)
+generate_report(r, "bob.md")
+# %%
+for k, v in c.items():
+    r = Reduced.from_cat(v, 45)
+    generate_report(r, f"{k}.md")
+
 # %%
