@@ -17,7 +17,7 @@ config_mac = AnalyzerConfig(
     cry_width=102,
     cry_depth=54,
     N=3,
-    acceptance_angle=0.05651551,
+    incident_angle=0.05651551,
     thickness=1,
 )
 config_sirius = AnalyzerConfig(
@@ -27,7 +27,7 @@ config_sirius = AnalyzerConfig(
     cry_width=30,  # transverse
     cry_depth=50,
     N=8,
-    acceptance_angle=0.05651551,
+    incident_angle=0.05651551,
     thickness=1,
 )
 
@@ -38,7 +38,7 @@ config = AnalyzerConfig(
     cry_width=102,
     cry_depth=54,
     N=3,
-    acceptance_angle=0.05651551,
+    incident_angle=0.05651551,
     thickness=1,
 )
 detector_config = DetectorConfig(pitch=0.055, transverse_size=512, height=1)
@@ -313,7 +313,7 @@ def reduce_raw(
         # TODO pull from calibration structure
         center=[detector.transverse_size / 2] * analyzer.N,
         # acceptance angle of crystals
-        tha=analyzer.acceptance_angle,
+        tha=analyzer.incident_angle,
         # global offset of MCA vs arm position
         # TODO pull from calibration structure
         thd=0.0,

@@ -32,7 +32,7 @@ class Endstation:
     ) -> Self:
         crystalSi01 = rmats.CrystalSi(t=analyzer.thickness)
         theta_b = _bragg(crystalSi01, source.E_incident)
-        analyzer = replace(analyzer, acceptance_angle=np.rad2deg(theta_b))
+        analyzer = replace(analyzer, incident_angle=np.rad2deg(theta_b))
 
         arm_tth = np.deg2rad(15)
         beamLine = raycing.BeamLine()

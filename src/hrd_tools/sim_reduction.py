@@ -113,6 +113,8 @@ def load_config_from_tiled(grp: tiled.client.container.Container):
             if fld.name != "scan":
                 print(f"missing {fld.name}")
         else:
+            if fld.name == "analyzer" and "acceptance_angle" in config_grp:
+                config_grp["incident_angle"] = config_grp.pop("acceptance_angle")
             configs[fld.name] = fld.type(**config_grp)
     if "scan" not in configs:
         tth = grp["tth"].read()
@@ -200,7 +202,7 @@ def reduce_raw(
         # TODO pull from calibration structure
         center=np.array(calibration.detector_centers),
         # incident angle of crystals
-        tha=analyzer.acceptance_angle,
+        tha=analyzer.incident_angle,
         # global offset of MCA vs arm position
         # TODO pull from calibration structure
         thd=0.0,

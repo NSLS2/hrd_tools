@@ -49,7 +49,7 @@ def get_defaults():
                 cry_depth=54,
                 N=1,
                 # will be set when buliding end station
-                acceptance_angle=0,
+                incident_angle=0,
                 thickness=1,
                 roll=0,
             ),
@@ -74,9 +74,6 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
             )
         )
     return out
-
-
-
 
 
 config_classes = [
@@ -106,7 +103,7 @@ def get_conversion_func(annot):
 type_map = {}
 allowed_keys = set()
 full_name_map = {}
-for cfg_name_field  in fields(CompleteConfig):
+for cfg_name_field in fields(CompleteConfig):
     cls = cfg_name_field.type
     cfg_name = cfg_name_field.name
     for field in fields(cls):
@@ -114,7 +111,7 @@ for cfg_name_field  in fields(CompleteConfig):
             raise ValueError(f"Name colision on {field.name}")
         allowed_keys.add(field.name)
         type_map[field.name] = get_conversion_func(field.type)
-        full_name_map[field.name] = f'{cfg_name}.{field.name}'
+        full_name_map[field.name] = f"{cfg_name}.{field.name}"
 
 
 # Utility: convert a comma-separated string to a list of values using conv.

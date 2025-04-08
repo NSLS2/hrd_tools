@@ -22,7 +22,7 @@ class AnalyzerConfig:
     # number of crystals
     N: int
     # acceptance angle of crystals
-    acceptance_angle: float
+    incident_angle: float
     # thickness of crystals in mm
     thickness: float
     # roll of the analyzer crystals in deg
