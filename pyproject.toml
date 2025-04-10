@@ -127,6 +127,7 @@ extend-ignore = [
   "NPY002", # allow the old numpy random generator
   "PD901",  # df is a fine variable name
   "EM102",  # use an fstring in an exception if you want
+  "EM101",  # use strings in exceptions if you want
 ]
 unfixable = [
   "T20",  # Removes print statements
