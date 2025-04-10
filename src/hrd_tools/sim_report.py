@@ -1,13 +1,17 @@
 # %%
-
 import base64
 import io
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
+import matplotlib.axes
+import matplotlib.patches
 import multianalyzer
+import numpy as np
 import tiled.client
 from jinja2 import Template
+
+from hrd_tools.config import AnalyzerConfig, DetectorConfig, SourceConfig
 
 from .config import (
     CompleteConfig,
@@ -127,6 +131,227 @@ def aggregate_min_max(
                     )
 
     return result
+
+
+def display_analyzer(
+    config: AnalyzerConfig,
+    ax: matplotlib.axes.Axes,
+    *,
+    equal_aspect=False,
+    show_thickness=False,
+):
+    sample_loc = np.array([0, 0])
+    theta = np.deg2rad(config.incident_angle)
+    cry_loc = sample_loc + config.R * np.array([np.cos(theta), np.sin(theta)])
+    det_loc = cry_loc + config.Rd * np.array([np.cos(theta), -np.sin(theta)])
+
+    ax.plot(*np.vstack([sample_loc, cry_loc, det_loc]).T, lw=2.5, color="k")
+
+    if show_thickness:
+        rect = matplotlib.patches.Rectangle(
+            cry_loc - np.array([config.cry_depth / 2, 0]),
+            config.cry_depth,
+            config.thickness,
+            facecolor="b",
+            clip_on=False,
+            edgecolor="b",
+            lw=10,
+        )
+        ax.add_artist(rect)
+    else:
+        ax.plot(
+            [cry_loc[0] - config.cry_depth / 2, cry_loc[0] + config.cry_depth / 2],
+            [cry_loc[1], cry_loc[1]],
+        )
+
+    R_text_loc = (sample_loc + cry_loc) / 2 + 2
+    Rd_text_loc = (cry_loc + det_loc) / 2 - 2
+    ax.text(
+        *R_text_loc,
+        f"R = {config.R}mm",
+        rotation=config.incident_angle,
+        transform_rotates_text=True,
+        rotation_mode="anchor",
+        ha="center",
+    )
+    ax.text(
+        *Rd_text_loc,
+        f"Rd = {config.Rd}mm",
+        rotation=-config.incident_angle,
+        transform_rotates_text=True,
+        rotation_mode="anchor",
+        ha="center",
+        va="top",
+    )
+
+    ax.set_ylim(-10, cry_loc[1] + 10)
+    ax.set_xlim(-10, config.R + config.Rd + 10)
+    if equal_aspect:
+        ax.set_aspect("equal")
+
+    ax.set_xlabel("X (mm)")
+    ax.set_ylabel("Z (mm)")
+    ax.set_title("Crystal analyzer geometry")
+
+
+# %%
+def display_det(
+    config: DetectorConfig,
+    ax: matplotlib.axes.Axes,
+):
+    width = config.pitch * config.transverse_size
+
+    rect = matplotlib.patches.Rectangle(
+        (-width / 2, -config.height / 2),
+        width=width,
+        height=config.height,
+        facecolor="none",
+        edgecolor="k",
+        lw=1,
+    )
+    ax.text(
+        0,
+        0,
+        f"{config.transverse_size}px\n {config.pitch * 1000} μm",
+        ha="center",
+        va="center",
+    )
+    ax.annotate(
+        f"{width} mm",
+        (0, config.height / 2),
+        xytext=(0, 5),
+        textcoords="offset pixels",
+        ha="center",
+    )
+    ax.annotate(
+        f"{config.height} mm",
+        (width / 2, 0),
+        xytext=(5, 0),
+        textcoords="offset pixels",
+        ha="center",
+        rotation=-90,
+        rotation_mode="anchor",
+    )
+    ax.add_artist(rect)
+
+    ax.set_aspect("equal")
+    ax.set_xlim(-width, width)
+    ax.set_ylim(-config.height, config.height)
+    ax.axis("off")
+    ax.set_title("Detector Geometry")
+
+
+# %%
+
+
+# %%
+def display_source(
+    config: SourceConfig,
+    fig: matplotlib.figure.SubFigure,
+    div_unit: Literal["deg", "rad"] = "rad",
+):
+    # (ax_real, ax_recip, ax_slice) =
+    ax_dict = fig.subplot_mosaic(
+        [
+            ["ax_real", "ax_real"],
+            # ["ax_recip", "ax_recip"],
+            ["ax_slch", "ax_slcv"],
+        ],
+        height_ratios=(2, 1),
+    )
+    ax = ax_dict["ax_real"]
+    ax.set_aspect("equal")
+    if div_unit == "rad":
+        unit = "μrad"
+        h_div = np.deg2rad(config.h_div) * 1e6
+        v_div = np.deg2rad(config.v_div) * 1e6
+    elif div_unit == "deg":
+        unit = "μdeg"
+        h_div = config.h_div * 1e6
+        v_div = config.v_div * 1e6
+    else:
+        raise ValueError('div_unit must be in {"deg", "rad"}')
+
+    # real space view
+    ax.annotate(
+        f"depth {config.dy} mm",
+        (0, 1),
+        xycoords="axes fraction",
+        xytext=(5, -5),
+        textcoords="offset pixels",
+        va="baseline",
+    )
+
+    width = config.dx
+    height = config.dz
+    rect = matplotlib.patches.Rectangle(
+        (-width / 2, -height / 2),
+        width=width,
+        height=height,
+        facecolor="none",
+        edgecolor="k",
+        lw=1,
+    )
+    ax.annotate(
+        f"{width} mm",
+        (0, height / 2),
+        xytext=(0, 5),
+        textcoords="offset pixels",
+        ha="center",
+    )
+    ax.annotate(
+        f"{height} mm",
+        (max(0.5, width / 2), 0),
+        xytext=(5, 0),
+        textcoords="offset pixels",
+        ha="center",
+        rotation=-90,
+        rotation_mode="anchor",
+    )
+    ax.add_artist(rect)
+
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.set_xlabel("hoizontal")
+    ax.set_ylabel("vertical")
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    fig.suptitle("Source")
+
+    # divergence heat map
+    # TODO make unit dependent
+    min_d, max_d = -100, 100
+
+    def norm(bins, sigma, mu=0):
+        return (
+            1
+            / (sigma * np.sqrt(2 * np.pi))
+            * np.exp(-((bins - mu) ** 2) / (2 * sigma**2))
+        )
+
+    # TODO make this controled by kwarg
+    # cols, rows = np.ogrid[min_d:max_d:1024j, min_d:max_d:1024j]
+    # img = norm(cols, v_div / 2.355) * norm(rows, h_div / 2.355)
+    # ax_dict["ax_recip"].imshow(img, cmap="gray")
+
+    # divergence slices
+
+    bins = np.linspace(min_d, max_d, 1024)
+
+    for div, ax_name, title in zip(
+        [h_div, v_div], ["ax_slch", "ax_slcv"], ["h", "v"], strict=False
+    ):
+        sigma = div / 2.355
+
+        ax_slice = ax_dict[ax_name]
+        ax_slice.set_yticks([])
+        ax_slice.plot(bins, norm(bins, sigma), color="k")
+        ax_slice.set_xlabel(f"angle ({unit})")
+        ax_slice.set_title(f"{title}: {div:2g} {unit}")
+        ax_slice.set_xlim(min_d, max_d)
 
 
 # %%
