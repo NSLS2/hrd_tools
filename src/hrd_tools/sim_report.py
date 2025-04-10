@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 import matplotlib.axes
 import matplotlib.patches
+import matplotlib.figure
 import multianalyzer
 import numpy as np
 import tiled.client
@@ -135,7 +136,7 @@ def aggregate_min_max(
 
 def display_analyzer(
     config: AnalyzerConfig,
-    ax: matplotlib.axes.Axes,
+    fig: matplotlib.figure.SubFigure,
     *,
     equal_aspect=False,
     show_thickness=False,
@@ -144,6 +145,8 @@ def display_analyzer(
     theta = np.deg2rad(config.incident_angle)
     cry_loc = sample_loc + config.R * np.array([np.cos(theta), np.sin(theta)])
     det_loc = cry_loc + config.Rd * np.array([np.cos(theta), -np.sin(theta)])
+
+    ax = fig.subplots()
 
     ax.plot(*np.vstack([sample_loc, cry_loc, det_loc]).T, lw=2.5, color="k")
 
@@ -191,14 +194,15 @@ def display_analyzer(
 
     ax.set_xlabel("X (mm)")
     ax.set_ylabel("Z (mm)")
-    ax.set_title("Crystal analyzer geometry")
+    fig.suptitle("Crystal analyzer geometry")
 
 
 # %%
 def display_det(
     config: DetectorConfig,
-    ax: matplotlib.axes.Axes,
+    fig: matplotlib.figure.SubFigure,
 ):
+    ax = fig.subplots()
     width = config.pitch * config.transverse_size
 
     rect = matplotlib.patches.Rectangle(
@@ -238,28 +242,32 @@ def display_det(
     ax.set_xlim(-width, width)
     ax.set_ylim(-config.height, config.height)
     ax.axis("off")
-    ax.set_title("Detector Geometry")
+    fig.suptitle("Detector Geometry")
 
 
 # %%
 
 
 # %%
+
+
 def display_source(
     config: SourceConfig,
     fig: matplotlib.figure.SubFigure,
     div_unit: Literal["deg", "rad"] = "rad",
 ):
-    # (ax_real, ax_recip, ax_slice) =
-    ax_dict = fig.subplot_mosaic(
+    fig_real, fig_div = fig.subfigures(2, 1, height_ratios=(1, 2))
+    for sfig in (fig_real, fig_div):
+        sfig.patch.set_facecolor(".9")
+    fig_div.suptitle("divergence")
+    fig_real.suptitle("shape")
+    ax_dict = fig_div.subplot_mosaic(
         [
-            ["ax_real", "ax_real"],
-            # ["ax_recip", "ax_recip"],
             ["ax_slch", "ax_slcv"],
+            ["ax_recip", "ax_recip"],
         ],
-        height_ratios=(2, 1),
     )
-    ax = ax_dict["ax_real"]
+    ax = fig_real.subplots()
     ax.set_aspect("equal")
     if div_unit == "rad":
         unit = "μrad"
@@ -274,14 +282,13 @@ def display_source(
 
     # real space view
     ax.annotate(
-        f"depth {config.dy} mm",
-        (0, 1),
+        f"depth: {config.dy} mm",
+        (1, 0),
         xycoords="axes fraction",
-        xytext=(5, -5),
-        textcoords="offset pixels",
         va="baseline",
+        ha="center",
     )
-
+    ax.xaxis.set_label_position("top")
     width = config.dx
     height = config.dz
     rect = matplotlib.patches.Rectangle(
@@ -304,8 +311,8 @@ def display_source(
         (max(0.5, width / 2), 0),
         xytext=(5, 0),
         textcoords="offset pixels",
-        ha="center",
-        rotation=-90,
+        # ha="center",
+        # rotation=-90,
         rotation_mode="anchor",
     )
     ax.add_artist(rect)
@@ -332,10 +339,14 @@ def display_source(
             * np.exp(-((bins - mu) ** 2) / (2 * sigma**2))
         )
 
-    # TODO make this controled by kwarg
-    # cols, rows = np.ogrid[min_d:max_d:1024j, min_d:max_d:1024j]
-    # img = norm(cols, v_div / 2.355) * norm(rows, h_div / 2.355)
-    # ax_dict["ax_recip"].imshow(img, cmap="gray")
+    cols, rows = np.ogrid[min_d:max_d:1024j, min_d:max_d:1024j]
+    if v_div > 0 and h_div > 0:
+        img = norm(cols, v_div / 2.355) * norm(rows, h_div / 2.355)
+    else:
+        img = np.zeros((1024, 1024))
+    ax_dict["ax_recip"].imshow(img, cmap="gray", extent=[min_d, max_d, min_d, max_d])
+
+    ax_dict["ax_recip"].axis("off")
 
     # divergence slices
 
@@ -345,14 +356,18 @@ def display_source(
         [h_div, v_div], ["ax_slch", "ax_slcv"], ["h", "v"], strict=False
     ):
         sigma = div / 2.355
-
+        assert sigma >= 0
         ax_slice = ax_dict[ax_name]
         ax_slice.set_yticks([])
-        ax_slice.plot(bins, norm(bins, sigma), color="k")
+
         ax_slice.set_xlabel(f"angle ({unit})")
         ax_slice.set_title(f"{title}: {div:2g} {unit}")
         ax_slice.set_xlim(min_d, max_d)
-
+        if sigma > 0:
+            ax_slice.plot(bins, norm(bins, sigma), color="k")
+        else:
+            ax_slice.axvline(0, color="k")
+            ax_slice.axhline(0, color="k")
 
 # %%
 def generate_report(r: Reduced, fname="test.md"):
@@ -404,3 +419,5 @@ def generate_report(r: Reduced, fname="test.md"):
 
     with open(fname, "w") as fout:
         fout.write(template.render(data))
+
+# %%
