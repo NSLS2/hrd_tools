@@ -5,19 +5,29 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import matplotlib.axes
-import matplotlib.patches
 import matplotlib.figure
+import matplotlib.patches
 import multianalyzer
 import numpy as np
 import tiled.client
 from jinja2 import Template
 
-from hrd_tools.config import AnalyzerConfig, DetectorConfig, SourceConfig
-
+# %%
 from .config import (
+    AnalyzerConfig,
     CompleteConfig,
+    DetectorConfig,
+    SourceConfig,
 )
-from .sim_reduction import plot_cat_fwhm_1d, plot_reduced_cat, raw_grid, reduce_catalog
+from .sim_reduction import (
+    load_config_from_tiled,
+    plot_cat_fwhm_1d,
+    plot_reduced_cat,
+    raw_grid,
+    reduce_catalog,
+)
+
+# %%
 
 
 @dataclass
@@ -31,6 +41,7 @@ class Reduced:
         return cls(cat, reduce_catalog(cat, phi_max=phi_max), phi_max)
 
 
+# %%
 # Define the updated Jinja2 template as a multi-line string
 _template_str = """
 # {{ title }}
@@ -71,7 +82,21 @@ _template_str = """
 {% else %}
 *No graphs available.*
 {% endif %}
+
+## Configurations
+
+{% if layouts %}
+{% for layout in layouts %}
+![{{ layout.oro }}]({{ layout.filename }})
+
+*{{ layout.oro }}*
+{% endfor %}
+{% else %}
+*No layouts available.*
+{% endif %}
+
 """
+# %%
 
 
 def base64ify(fig):
@@ -257,8 +282,8 @@ def display_source(
     div_unit: Literal["deg", "rad"] = "rad",
 ):
     fig_real, fig_div = fig.subfigures(2, 1, height_ratios=(1, 2))
-    for sfig in (fig_real, fig_div):
-        sfig.patch.set_facecolor(".9")
+
+    fig_div.patch.set_facecolor(".9")
     fig_div.suptitle("divergence")
     fig_real.suptitle("shape")
     ax_dict = fig_div.subplot_mosaic(
@@ -369,6 +394,23 @@ def display_source(
             ax_slice.axvline(0, color="k")
             ax_slice.axhline(0, color="k")
 
+
+def generate_config_summary(
+    config: CompleteConfig, fig: matplotlib.figure.Figure | None = None
+):
+    if fig is None:
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(figsize=(8, 4), layout="constrained")
+
+    (sfig_src, sfig_cry, sfig_det) = fig.subfigures(1, 3)
+
+    display_analyzer(config.analyzer, sfig_cry, equal_aspect=False)
+    display_det(config.detector, sfig_det)
+    display_source(config.source, sfig_src)
+    return fig
+
+
 # %%
 def generate_report(r: Reduced, fname="test.md"):
     # Create a Template object from the string
@@ -415,9 +457,22 @@ def generate_report(r: Reduced, fname="test.md"):
                 ),
             },
         ],
+        "layouts": [
+            {
+                "filename": base64ify(
+                    generate_config_summary(
+                        load_config_from_tiled(s),
+                        matplotlib.figure.Figure(figsize=(8, 4), layout="constrained"),
+                    )
+                ),
+                "oro": f"key: {k}",
+            }
+            for k, s in cat.items()
+        ],
     }
 
     with open(fname, "w") as fout:
         fout.write(template.render(data))
+
 
 # %%
