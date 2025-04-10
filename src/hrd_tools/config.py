@@ -21,7 +21,7 @@ class AnalyzerConfig:
     cry_depth: float
     # number of crystals
     N: int
-    # acceptance angle of crystals
+    # incident angle of crystals in rad
     incident_angle: float
     # thickness of crystals in mm
     thickness: float
