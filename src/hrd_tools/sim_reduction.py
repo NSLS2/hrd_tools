@@ -95,7 +95,7 @@ def plot_cat_fwhm_1d(cat, results, peak_windows: list[tuple[float, float]]):
             x = [varied[scan][key] for scan in peak_fwhm]
             y = list(peak_fwhm.values())
             (ln,) = ax.plot(x, y, marker, label=f"peak {j + 1}")
-        ax.axhline(ref_peak, linestyle="--", color=ln.get_color())
+            ax.axhline(ref_peak, linestyle="--", color=ln.get_color())
         ax.legend()
         ax.set_xlabel(key)
         ax.set_ylabel("fwhm")
@@ -409,6 +409,8 @@ def raw_grid(cat, results, config_filter=None):
         grid_size2 -= 1
     sub_figs = fig.subfigures(grid_size, grid_size2)
     for (k, sim), sfig in zip(cat.items(), sub_figs.ravel(), strict=False):
+        if config_filter is not None and not config_filter(sim.metadata):
+            continue
         tth = np.rad2deg(sim["tth"].read())
         block = sim["block"].read().astype("int32")
         (res, config, _) = results[(cat.uri, k)]
