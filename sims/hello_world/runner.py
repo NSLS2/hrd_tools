@@ -24,7 +24,7 @@ def scan_to_file(
 ):
     cache_rate = writer.send(None)
     with contextlib.closing(writer):
-        writer.send(bl, scan_config)
+        writer.send((bl, scan_config))
         start, stop, delta = np.deg2rad(
             [scan_config.start, scan_config.stop, scan_config.delta]
         )

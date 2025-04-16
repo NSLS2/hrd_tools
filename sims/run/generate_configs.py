@@ -39,10 +39,10 @@ def get_defaults():
             ),
             "sim": SimConfig(nrays=500_000),
             "detector": DetectorConfig(
-                pitch=0.055, transverse_size=512, height=0.055 * 448
+                pitch=0.055, transverse_size=512, height=0.055 * 30
             ),
             "analyzer": AnalyzerConfig(
-                R=300,
+                R=1000,
                 Rd=115,
                 cry_offset=np.deg2rad(2.5),
                 cry_width=102,
