@@ -38,7 +38,10 @@ def load_config_from_group(grp):
             if fld.name != "scan":
                 print(f"missing {fld.name}")
         else:
-            configs[fld.name] = fld.type(**config_grp.attrs)
+            config_attrs = dict(**config_grp.attrs)
+            if fld.name == "analyzer" and "acceptance_angle" in config_attrs:
+                config_attrs["incident_angle"] = config_attrs.pop("acceptance_angle")
+            configs[fld.name] = fld.type(**config_attrs)
     if "scan" not in configs:
         tth = grp["tth"][:]
         configs["scan"] = SimScanConfig(
