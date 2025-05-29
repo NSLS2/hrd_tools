@@ -167,12 +167,12 @@ bluesky = ["bluesky"]
 
 
 [tool.pixi.dependencies]
-ipython = ">=8.31.0,<9"
+ipython = ">=8.36.0,<10"
 cycler = ">=0.12.1,<0.13"
 distro = ">=1.9.0,<2"
 tomli-w = ">=1.2.0,<2"
 python = ">=3.11.11,<3.14"
-jinja2 = ">=3.1.5,<4"
+jinja2 = ">=3.1.6,<4"
 
 
 [tool.pixi.feature.dev.dependencies]
@@ -185,7 +185,7 @@ xonsh = "*"
 [tool.pixi.feature.glow.dependencies]
 pyqt = "<6"
 pyqtwebengine = ">=5.15.9,<6"
-pyopengl = ">=3.1.6,<4"
+pyopengl = ">=3.1.9,<4"
 
 [tool.pixi.feature.docs.dependencies]
 numpydoc = "*"
