@@ -5,6 +5,7 @@ import xrt.backends.raycing.run as rrun
 
 from hrd_tools.config import SimConfig, SourceConfig
 from hrd_tools.xrt.hemisphere import Endstation, StripDetectorConfig
+import matplotlib.pyplot as plt
 
 # %%
 detector_config = StripDetectorConfig(
@@ -148,3 +149,26 @@ def scan_position(offsets, *, N=10, delta_phi=1):
         out_stack.append(I.mean(axis=0))
 
     return th, np.vstack(out_stack)
+
+
+# %%
+
+th, scan_img4 = scan_position(
+    [(j, 0, 0) for j in np.arange(0, 200, 5)], delta_phi=90, N=50
+)
+
+# %%
+
+fig, ax = plt.subplots(layout="constrained", figsize=(6, 2))
+im = ax.imshow(
+    scan_img4,
+    aspect="auto",
+    norm="log",
+    extent=[np.rad2deg(th.min()), np.rad2deg(th.max()), 0, 200],
+    origin='lower'
+)
+fig.colorbar(im)
+ax.set_xlabel(r"$2\theta$ (deg) on detector")
+ax.set_ylabel("outboard offset (mm)")
+ax.set_xlim(0, 55)
+plt.show()
