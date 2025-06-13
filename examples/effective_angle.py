@@ -46,6 +46,6 @@ for arm in np.deg2rad(arm_th):
     n1 = to_norm(arm - bragg - np.pi/2, 0)
     v = to_norm(arm, phi).T
     out.append(np.rad2deg(bragg - (angle(n1, v) - np.pi/2)))
-
+plt.figure()
 plt.imshow(out, aspect='auto', extent=[np.rad2deg(np.min(phi)), np.rad2deg(np.max(phi)), np.min(arm_th), np.max(arm_th)], origin='lower')
 plt.colorbar()
