@@ -4,48 +4,112 @@ import numpy.linalg
 import matplotlib.pyplot as plt
 import xrt.backends.raycing.materials as rmats
 
+
 # %%
 def angle(n1, v1):
-    return np.arccos(np.linalg.vecdot(n1, v1) / (np.linalg.vector_norm(n1) * np.linalg.vector_norm(v1, axis=1)))
+    return np.arccos(
+        np.linalg.vecdot(n1, v1)
+        / (np.linalg.vector_norm(n1) * np.linalg.vector_norm(v1, axis=1))
+    )
+
 
 def to_norm(θ, ɸ):
-    return np.array([np.sin(θ) * np.cos(ɸ),
-                     np.sin(θ) * np.sin(ɸ),
-                     np.cos(θ) * np.ones_like(ɸ)
-                     ])
+    return np.array(
+        [
+            np.sin(θ) * np.cos(ɸ),
+            np.sin(θ) * np.sin(ɸ),
+            np.cos(θ) * np.ones_like(ɸ),
+        ]
+    )
 
 
 # %%
 E = 30_000
-crystal = rmats.CrystalSi(t=1)
+# TODO generate with other material, hkl
+crystal = rmats.CrystalSi(t=1, hkl=(1, 1, 1))
 bragg = crystal.get_Bragg_angle(E)
 darwin = crystal.get_Darwin_width(E)
 phi = np.deg2rad(np.linspace(0, 1, 128))
 
 # %%
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(layout="constrained")
 
-for arm in np.deg2rad([0, 45, 90]):
-    n1 = to_norm(arm - bragg - np.pi/2, 0)
+for arm in np.deg2rad([15, 45, 60, 90]):
+    n1 = to_norm(arm - bragg - np.pi / 2, 0)
     v = to_norm(arm, phi).T
 
-    ax.plot(np.rad2deg(phi), np.rad2deg(bragg - (angle(n1, v) - np.pi/2)),
-            label=np.rad2deg(arm))
-
-ax.axhline(np.rad2deg(darwin)    )
-ax.set_xlabel('$\phi$ (deg)')
-ax.set_ylabel(r'$\theta_{bragg} - 2\theta_{eff}$ (deg)')
+    ax.plot(
+        np.rad2deg(phi),
+        np.rad2deg(bragg - (angle(n1, v) - np.pi / 2)),
+        label=f"$2\\theta = {np.rad2deg(arm):.1f}\\degree$",
+    )
+ax.set_title(f"at {E / 1_000}kEv")
+ax.annotate(
+    f"Si 111 Darwin width\n({np.rad2deg(darwin):.2g}$\\degree$)",
+    (0, np.rad2deg(darwin)),
+    xytext=(5, 5),
+    textcoords="offset pixels",
+)
+ax.axhline(np.rad2deg(darwin))
+ax.set_xlim(0, 1)
+ax.set_ylim(0, np.rad2deg(darwin) * 3)
+ax.set_xlabel(r"$\phi$ (deg)")
+ax.set_ylabel(r"$\theta_{bragg} - 2\theta_{eff}$ (deg)")
 ax.legend()
 
 # %%
 
+phi = np.deg2rad(np.linspace(0, 45, 1024))
 out = []
-arm_th = np.linspace(-90, 180, 512)
+arm_th = np.linspace(1, 180, 5120)
 for arm in np.deg2rad(arm_th):
-    n1 = to_norm(arm - bragg - np.pi/2, 0)
+    n1 = to_norm(arm - bragg - np.pi / 2, 0)
     v = to_norm(arm, phi).T
-    out.append(np.rad2deg(bragg - (angle(n1, v) - np.pi/2)))
+    out.append(np.rad2deg(bragg - (angle(n1, v) - np.pi / 2)))
+
+angle_deviation = np.asarray(out)
+
+
+# 1m sample -> crystal
+d = 1
+# 320*75um for medipix4
+detector_width = 320*75*10e-6
+
+# 256*55um for medipix3
+# detector_width = 256 * 55 * 10e-6
+
+
+def effoctive_solid_angle(theta, d, detector_width):
+    # radius of DS ring at detector
+    R = d * np.sin(theta)
+    return 2 * np.arctan2(detector_width / 2, R)
+
+
+sa = effoctive_solid_angle(np.deg2rad(arm_th), d, detector_width)
+
+fig, ax = plt.subplots(layout="constrained")
+ax.plot(arm_th, sa, label=r"max $\phi$ on detector")
+ax.plot(
+    arm_th,
+    np.rad2deg(phi[np.argmin(np.abs(angle_deviation) < darwin, axis=1)]),
+    label="max $\phi$ from Darwin",
+)
+ax.legend()
+ax.set_title(f'sample-to-detector {d}m, detector_width {detector_width*1000:.1f}mm')
+
+# %%
 plt.figure()
-plt.imshow(out, aspect='auto', extent=[np.rad2deg(np.min(phi)), np.rad2deg(np.max(phi)), np.min(arm_th), np.max(arm_th)], origin='lower')
+plt.imshow(
+    # np.abs(angle_deviation) < darwin,
+    angle_deviation,
+    aspect="auto",
+    extent=(
+        np.rad2deg(np.min(phi)),
+        np.rad2deg(np.max(phi)),
+        np.min(arm_th),
+        np.max(arm_th),
+    ),
+    origin="lower",
+)
 plt.colorbar()
