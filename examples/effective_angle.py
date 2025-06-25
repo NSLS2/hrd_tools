@@ -8,8 +8,8 @@ import xrt.backends.raycing.materials as rmats
 # %%
 def angle(n1, v1):
     return np.arccos(
-        np.linalg.vecdot(n1, v1)
-        / (np.linalg.vector_norm(n1) * np.linalg.vector_norm(v1, axis=1))
+        np.vecdot(n1, v1)
+        / (np.linalg.vector_norm(n1, axis=2) * np.linalg.vector_norm(v1, axis=2))
     )
 
 
@@ -29,19 +29,19 @@ E = 30_000
 crystal = rmats.CrystalSi(t=1, hkl=(1, 1, 1))
 bragg = crystal.get_Bragg_angle(E)
 darwin = crystal.get_Darwin_width(E)
-phi = np.deg2rad(np.linspace(0, 1, 128))
+phi = np.deg2rad(np.linspace(0, 1, 1024))
 
 # %%
 
 fig, ax = plt.subplots(layout="constrained")
 
 for arm in np.deg2rad([15, 45, 60, 90]):
-    n1 = to_norm(arm - bragg - np.pi / 2, 0)
+    n1 = to_norm(arm, 0)
     v = to_norm(arm, phi).T
 
     ax.plot(
         np.rad2deg(phi),
-        np.rad2deg(bragg - (angle(n1, v) - np.pi / 2)),
+        np.rad2deg((angle(n1, v))),
         label=f"$2\\theta = {np.rad2deg(arm):.1f}\\degree$",
     )
 ax.set_title(f"at {E / 1_000}kEv")
@@ -53,20 +53,20 @@ ax.annotate(
 )
 ax.axhline(np.rad2deg(darwin))
 ax.set_xlim(0, 1)
-ax.set_ylim(0, np.rad2deg(darwin) * 3)
+# ax.set_ylim(0, np.rad2deg(darwin) * 3)
 ax.set_xlabel(r"$\phi$ (deg)")
 ax.set_ylabel(r"$\theta_{bragg} - 2\theta_{eff}$ (deg)")
 ax.legend()
 
 # %%
 
-phi = np.deg2rad(np.linspace(0, 45, 1024))
+phi = np.deg2rad(np.linspace(0, 1, 1024))
 out = []
-arm_th = np.linspace(1, 180, 5120)
+arm_th = np.linspace(-1, 6, 5120)
 for arm in np.deg2rad(arm_th):
-    n1 = to_norm(arm - bragg - np.pi / 2, 0)
+    n1 = to_norm(arm - bragg, 0)
     v = to_norm(arm, phi).T
-    out.append(np.rad2deg(bragg - (angle(n1, v) - np.pi / 2)))
+    out.append(np.rad2deg(0*bragg - (angle(n1, v))))
 
 angle_deviation = np.asarray(out)
 
@@ -79,10 +79,13 @@ detector_width = 320*75*10e-6
 # 256*55um for medipix3
 # detector_width = 256 * 55 * 10e-6
 
+# 1028*75um for eiger2
+# detector_width = 1028* 75 * 10e-6
+
 
 def effoctive_solid_angle(theta, d, detector_width):
     # radius of DS ring at detector
-    R = d * np.sin(theta)
+    R = d * np.abs(np.sin(theta))
     return 2 * np.arctan2(detector_width / 2, R)
 
 
@@ -101,8 +104,8 @@ ax.set_title(f'sample-to-detector {d}m, detector_width {detector_width*1000:.1f}
 # %%
 plt.figure()
 plt.imshow(
-    # np.abs(angle_deviation) < darwin,
-    angle_deviation,
+    #np.abs(angle_deviation) < darwin,
+    bragg - angle_deviation,
     aspect="auto",
     extent=(
         np.rad2deg(np.min(phi)),
@@ -113,3 +116,17 @@ plt.imshow(
     origin="lower",
 )
 plt.colorbar()
+
+# %%
+
+
+fig, ax = plt.subplots(layout="constrained")
+
+ring = 25
+arm = np.linspace(ring-.5, ring+.5, 512)
+phi = np.deg2rad(np.linspace(-.1, .1, 1024))
+n1 = to_norm(np.deg2rad(arm), 0).T
+v = to_norm(np.deg2rad(ring), phi).T
+
+
+ax.imshow(angle(n1, v))
