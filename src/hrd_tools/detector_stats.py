@@ -41,6 +41,12 @@ detectors = {
         sensor_shape=(1028, 512),
         mode=DetectorMode.COUNTING,
     ),
+    "timepix3": Detector(
+        name="Timepix3",
+        pixel_pitch=55.0,
+        sensor_shape=(256, 256),
+        mode=DetectorMode.PHOTON_STAMPING,
+    ),
 }
 
 
