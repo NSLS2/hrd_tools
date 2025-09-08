@@ -71,7 +71,9 @@ class SourceConfig:
     # maximum allowed tth generated in Deg
     max_tth: float = 180
     # off set of source from the true center of rotation of the crystals
-    source_offset: tuple[float, float, float] = (0, 0, 0)
+    source_offset_x: float = 0
+    source_offset_y: float = 0
+    source_offset_z: float = 0
 
 
 @dataclass(frozen=True)
