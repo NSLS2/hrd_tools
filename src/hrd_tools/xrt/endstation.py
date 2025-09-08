@@ -48,7 +48,7 @@ class Endstation:
         delta_phi = np.deg2rad(source.delta_phi)
         beamLine.geometricSource01 = XrdSource(
             bl=beamLine,
-            center=[0, 0, 0],
+            center=source.source_offset,
             dx=source.dx,
             dz=source.dz,
             dy=source.dy,
@@ -251,7 +251,9 @@ class Endstation:
         )
 
         out = {}
-
+        _, yedges, xedges = np.histogram2d(
+                    [], [], bins=shape, range=limits
+                )
         for k, lb in screen_beams.items():
             # print(lb.x, lb.y, lb.z, lb.state)
             inner = {}
