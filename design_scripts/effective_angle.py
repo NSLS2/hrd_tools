@@ -49,3 +49,4 @@ for arm in np.deg2rad(arm_th):
 plt.figure()
 plt.imshow(out, aspect='auto', extent=[np.rad2deg(np.min(phi)), np.rad2deg(np.max(phi)), np.min(arm_th), np.max(arm_th)], origin='lower')
 plt.colorbar()
+plt.show()
