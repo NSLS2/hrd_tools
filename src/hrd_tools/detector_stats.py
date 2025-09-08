@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Tuple
 
 
 class DetectorMode(Enum):
@@ -12,7 +11,7 @@ class DetectorMode(Enum):
 class Detector:
     name: str
     pixel_pitch: float  # in µm
-    sensor_shape: Tuple[int, int]  # (width, height) in pixels
+    sensor_shape: tuple[int, int]  # (width, height) in pixels
     mode: DetectorMode
 
 
