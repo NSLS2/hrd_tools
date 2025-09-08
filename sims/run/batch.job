@@ -12,4 +12,4 @@
 
 mkdir -p output
 
-pixi run -e xrt --frozen python ../hello_world/runner.py configs/config_$SLURM_ARRAY_TASK_ID.toml /nsls2/data3/projects/next_iiia_hrd/xrt_output/$(date '+%Y%m%d')/${SLURM_ARRAY_JOB_ID}-$SLURM_ARRAY_TASK_ID.h5 --cache-rate=200
+pixi run -e xrt --frozen python runner.py configs/config_$SLURM_ARRAY_TASK_ID.toml /nsls2/data3/projects/next_iiia_hrd/xrt_output/$(date '+%Y%m%d')/${SLURM_ARRAY_JOB_ID}-$SLURM_ARRAY_TASK_ID.h5 --cache-rate=200
