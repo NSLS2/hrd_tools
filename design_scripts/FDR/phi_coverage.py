@@ -41,22 +41,22 @@ style = {
 # %%
 
 # 1m sample -> crystal
-d = 0.9
+d = 1.03
 theta = np.linspace(0, np.deg2rad(120))
 
-fig, ax = plt.subplots(layout="constrained", figsize=(4, 2.75), dpi=300)
+fig, ax = plt.subplots(layout="constrained", figsize=(4, 2.75), dpi=100)
 for det, width in sorted(dets.items(), key=lambda x: x[1]):
     sa = effoctive_solid_angle(theta, d, width)
     ax.plot(
         np.rad2deg(theta),
-        sa,
+        np.rad2deg(sa),
         label=f"{det} ({width * 100:.2f} cm)",
         **style.get(det, {}),
     )
 ax.legend()
 ax.set_xlabel(r"$2\theta$ (deg)")
 ax.set_ylabel(r"$\pm\phi_{max}$ (deg)")
-ax.set_ylim(0, 0.14)
+ax.set_ylim(0, 4)
 ax.set_xlim(0, 120)
 # ax.set_yscale('log')
 ax.set_title(f"$\\pm\\phi_{{max}}$ at {d:.2f} m")
