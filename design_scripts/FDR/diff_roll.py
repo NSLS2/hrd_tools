@@ -62,3 +62,5 @@ ax.annotate(
     textcoords="offset points",
     va="top",
 )
+
+plt.show()
