@@ -1,6 +1,6 @@
 # %%
 # # Concentricity Analysis
-# 
+#
 # This notebook is to aid specifying how concentric the detector mounting must be with the center
 # of rotation of the diffractometer.
 
@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 # and be passed through that point.  Because the crystals are wide transverse
 # to the beam, there is a plane of scattering locations that will each pass
 # through a line on on the crystal.
-# 
+#
 # For scattering locations displaced from this plane by small distances the
 # rays may still be passed if the displacement is small enough that the
 # deviation of the ray is less than the Darwin width of the crystal will still be
@@ -64,12 +64,26 @@ ax = fig.add_subplot(111)
 ax.plot(energies/1000, widths)  # Convert to keV for plotting
 ax.set_xlabel('Energy (keV)')
 ax.set_ylabel('Gauge Width (um)')
-ax.set_title('Gauge Width at R=1m vs Energy')
+ax.set_title('Inherent Gauge Width at R=1m vs Energy')
+ax.grid(True)
+fig.show()
+
+# Plot gauge width vs distance at 30kEV
+
+R = np.linspace(0, 10_000_000, 512)
+widths = gauge_width(R, 30_000)
+
+fig = plt.figure(figsize=(10, 6), layout='constrained')
+ax = fig.add_subplot(111)
+ax.plot(R/1000, widths)  # Convert to keV for plotting
+ax.set_xlabel('R (mm)')
+ax.set_ylabel('Gauge Width (um)')
+ax.set_title('Inherent Gauge Width at 30kEv vs distance')
 ax.grid(True)
 fig.show()
 # %%
 # This displacement is perpendicular to the plane of ideal scattering, thus as the crystal is rotated
-# around the sample, there is a volume of sample that is always visible to the detector.  
+# around the sample, there is a volume of sample that is always visible to the detector.
 # Thus, for a perfectly aligned crystal with an infinitely thin detector a scan will sample a sphere
 # of the sample that is measured at every position and a shell of locations that are sampled at only
 # a small range of crystal positions.  If the center of the circle the detector are on is not concentric
@@ -77,5 +91,5 @@ fig.show()
 # to a shell until there is no consistently sampled volume.  Thus we want the two circles to be concentric
 # to within 2 um (1/3 the gauge width at 40keV an 1m)
 
-# %% 
-# The above analysis only considers 
+# %%
+# The above analysis only considers
