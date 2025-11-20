@@ -121,7 +121,7 @@ def plot_layout(det, *, ax=None, target=100):
         va="top",
     )
     ax.annotate(
-        "\n".join([f"Total Crystals \& Detectors: {det.number * det.bank.number}"]),
+        "\n".join([fr"Total Crystals \& Detectors: {det.number * det.bank.number}"]),
         (1, 1),
         xycoords="axes fraction",
         xytext=(0, 15),
@@ -174,10 +174,21 @@ def min_to_theta(det, target):
     return th[np.searchsorted(out, target)]
 
 # %%
-layout = Primary(Bank(11, 2), 5, 25)
-# layout = Primary(Bank(11, 2), 3, 25+15)
+layout = Primary(Bank(12, 2.5), 4, 11*2.5+5)
+# layout = Primary(Bank(8, 2), 6, 7*2 + 5)
+# layout = Primary(Bank(48, 2.5), 1, 0)
 
 fig, ax = plt.subplots(layout='constrained', figsize=(4.5, 4))
-plot_layout(layout, ax=ax, target=100)
+plot_layout(layout, ax=ax, target=125)
 fig.savefig('/tmp/layout.png', dpi=300)
+plt.show()
+
+# %%
+
+fig, ax_arr = plt.subplots(3, 2, layout='constrained', figsize=(7, 10))
+for row, pitch in zip(ax_arr, [2, 2.5, 3], strict=True):
+    for ax, (cry, banks) in zip(row, [(12, 4), (8, 6)], strict=True):
+        layout = Primary(Bank(cry, pitch), banks, (cry - 1) * pitch + 5)
+        plot_layout(layout, ax=ax, target=125)
+fig.savefig('/tmp/layout_grid.png', dpi=300)
 plt.show()
