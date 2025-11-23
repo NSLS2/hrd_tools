@@ -30,9 +30,11 @@ d = np.cumsum(
     np.hstack([0, np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2 + np.diff(z) ** 2)])
 )
 
-fig, (ax_r, ax_th, ax_phi) = plt.subplots(3, layout="constrained", sharex=True, figsize=(3, 6))
+fig, (ax_r, ax_th, ax_phi) = plt.subplots(
+    3, layout="constrained", sharex=True, figsize=(3, 6)
+)
 
-fig.suptitle(f'{start} to {stop}')
+fig.suptitle(f"{start} to {stop}")
 for data, ax, label in zip(
     (r, np.rad2deg(theta), np.rad2deg(phi)),
     (ax_r, ax_th, ax_phi),
@@ -42,6 +44,6 @@ for data, ax, label in zip(
     ax.plot(d, data)
     ax.set_ylabel(label)
 
-ax_phi.set_xlabel('along detector (mm)')
+ax_phi.set_xlabel("along detector (mm)")
 ax_phi.set_xlim(xmin=0)
 plt.show()

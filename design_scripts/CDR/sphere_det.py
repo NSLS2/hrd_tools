@@ -1,11 +1,11 @@
 # %%
 
+import matplotlib.pyplot as plt
 import numpy as np
 import xrt.backends.raycing.run as rrun
 
 from hrd_tools.config import SimConfig, SourceConfig
 from hrd_tools.xrt.hemisphere import Endstation, StripDetectorConfig
-import matplotlib.pyplot as plt
 
 # %%
 detector_config = StripDetectorConfig(
@@ -165,7 +165,7 @@ im = ax.imshow(
     aspect="auto",
     norm="log",
     extent=[np.rad2deg(th.min()), np.rad2deg(th.max()), 0, 200],
-    origin='lower'
+    origin="lower",
 )
 fig.colorbar(im)
 ax.set_xlabel(r"$2\theta$ (deg) on detector")

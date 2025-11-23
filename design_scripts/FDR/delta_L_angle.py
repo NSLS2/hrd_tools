@@ -1,7 +1,7 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import xrt.backends.raycing.materials as rmats
-import matplotlib as mpl
 
 E = 30_000
 crystal = rmats.CrystalSi(t=1)

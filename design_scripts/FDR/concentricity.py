@@ -6,8 +6,9 @@
 
 # %%
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+
 # %%
 # At any given point on the analyzer crystal there is a line along with
 # scattered rays will perfectly match the Bragg condition of the crystal
@@ -22,15 +23,16 @@ import matplotlib.pyplot as plt
 #
 # The size of the region that will be accepted is larger the farther the scattering
 # location is from the crystal, thus the gauge volume is a wedge shape.
-
 # %%
 import xrt.backends.raycing.materials as rmats
+
 E = 25_000
 crystal = rmats.CrystalSi(t=1)
 bragg = crystal.get_Bragg_angle(E)
 # in radians
 darwin = crystal.get_Darwin_width(E)
 # %%
+
 
 def gauge_width(R: float, energy: float) -> float:
     """Calculate the width of the gauge volume at a given distance from the crystal.
@@ -54,17 +56,18 @@ def gauge_width(R: float, energy: float) -> float:
     darwin = crystal.get_Darwin_width(energy)
     return R * np.tan(darwin)
 
+
 # %%
 # Plot gauge width vs energy
 energies = np.linspace(10_000, 40_000, 1000)
 widths = [gauge_width(1000000, E) for E in energies]
 
-fig = plt.figure(figsize=(10, 6), layout='constrained')
+fig = plt.figure(figsize=(10, 6), layout="constrained")
 ax = fig.add_subplot(111)
-ax.plot(energies/1000, widths)  # Convert to keV for plotting
-ax.set_xlabel('Energy (keV)')
-ax.set_ylabel('Gauge Width (um)')
-ax.set_title('Inherent Gauge Width at R=1m vs Energy')
+ax.plot(energies / 1000, widths)  # Convert to keV for plotting
+ax.set_xlabel("Energy (keV)")
+ax.set_ylabel("Gauge Width (um)")
+ax.set_title("Inherent Gauge Width at R=1m vs Energy")
 ax.grid(True)
 fig.show()
 
@@ -73,12 +76,12 @@ fig.show()
 R = np.linspace(0, 10_000_000, 512)
 widths = gauge_width(R, 30_000)
 
-fig = plt.figure(figsize=(10, 6), layout='constrained')
+fig = plt.figure(figsize=(10, 6), layout="constrained")
 ax = fig.add_subplot(111)
-ax.plot(R/1000, widths)  # Convert to keV for plotting
-ax.set_xlabel('R (mm)')
-ax.set_ylabel('Gauge Width (um)')
-ax.set_title('Inherent Gauge Width at 30kEv vs distance')
+ax.plot(R / 1000, widths)  # Convert to keV for plotting
+ax.set_xlabel("R (mm)")
+ax.set_ylabel("Gauge Width (um)")
+ax.set_title("Inherent Gauge Width at 30kEv vs distance")
 ax.grid(True)
 fig.show()
 # %%
