@@ -47,5 +47,3 @@ detectors = {
         mode=DetectorMode.PHOTON_STAMPING,
     ),
 }
-
-
