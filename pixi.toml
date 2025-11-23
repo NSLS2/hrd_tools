@@ -13,11 +13,9 @@ hrd_tools = { path = ".", editable = true }
 
 [environments]
 default = { features = ["reduction"], solve-group = "default" }
-dev = { features = ["dev"], solve-group = "default" }
-xrt = { features = ["xrt"], solve-group = "default" }
+xrt = { features = ["xrt", "reduction"], solve-group = "default" }
 glow = { features = ["glow", "xrt"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
-# test = { features = ["test"], solve-group = "default" }
 shell = { features = ["shell"], no-default-feature = true }
 lint = { features = ['lint'], no-default-feature = true }
 tiled = { features = ['tiled'] }
@@ -33,10 +31,6 @@ tomli-w = ">=1.2.0,<2"
 python = ">=3.11.11,<3.14"
 jinja2 = ">=3.1.6,<4"
 ipykernel = ">=6.30.1,<7"
-
-[feature.dev.dependencies]
-pytest = ">=8.3.4,<9"
-pytest-cov = ">=6.0.0,<7"
 
 
 [feature.shell.dependencies]
