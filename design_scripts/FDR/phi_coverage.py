@@ -5,11 +5,15 @@
 # covered by various commercial detectors as a function of θ
 #
 # This is intended as a figure in HRD FDR
+#
+# in contrast to phi_coverage2.py this uses simple geometry to estimate
+# effective ɸ coverage rather than the full correction.
 
 # %%
 
 import matplotlib.pyplot as plt
 import numpy as np
+from hrd_tools.detector_stats import detectors
 
 
 # %%
@@ -21,15 +25,10 @@ def effoctive_solid_angle(theta, d, detector_width):
 
 # %%
 
+# Calculate detector widths from detector stats
 dets = {
-    # 320*75um for medipix4
-    "medipix4": 320 * 75 * 1e-6,
-    # 256*55um for timepix4
-    "timepix4": 512 * 55 * 1e-6,
-    # 256*55um for medipix3, timepix3
-    "medipix3": 256 * 55 * 1e-6,
-    # 1028*75um for eiger2
-    "eiger2": 1028 * 75 * 1e-6,
+    name: det.sensor_shape[1] * det.pixel_pitch * 1e-6  # convert µm to meters
+    for name, det in detectors.items()
 }
 
 style = {

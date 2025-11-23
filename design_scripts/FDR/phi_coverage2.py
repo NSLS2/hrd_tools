@@ -2,9 +2,14 @@
 # # Effective ɸ for detectors
 #
 # This file generates a plot showing the effective ɸ (of the DS cone)
-# covered by various commercial detectors as a function of θ
+# covered by various commercial detectors as a function of 2θ
 #
 # This is intended as a figure in HRD FDR
+#
+# in contrast to phi_coverage.py this uses the full correction rather than estimating
+# via simple geometry.  The effect is small with a perfectly aligned crystal, but grows
+# if chi is non-zero.  Not bothering to explore that here as the dominating factor is detector
+# size.
 
 # %%
 
@@ -12,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from multihead.config import AnalyzerConfig
 from multihead.corrections import arm_from_z
+from hrd_tools.detector_stats import detectors
 
 
 # %%
@@ -26,17 +32,15 @@ def effoctive_solid_angle(tth, config, detector_width):
     return phi
 
 
-# %%
+# %% [markdown]
+# ## Plot effective ɸ for various detectors
+#
 
+
+# Calculate detector widths from detector stats
 dets = {
-    # 320*75um for medipix4
-    "medipix4": 320 * 75 * 1e-6,
-    # 256*55um for timepix4
-    "timepix4": 512 * 55 * 1e-6,
-    # 256*55um for medipix3, timepix3
-    "medipix3": 256 * 55 * 1e-6,
-    # 1028*75um for eiger2
-    "eiger2": 1028 * 75 * 1e-6,
+    name: det.sensor_shape[1] * det.pixel_pitch * 1e-6  # convert µm to meters
+    for name, det in detectors.items()
 }
 
 style = {
@@ -80,8 +84,10 @@ ax.set_title(f"$\\pm\\phi_{{max}}$ at {cfg.R + cfg.Rd:.2f} mm")
 plt.show()
 
 
+# %% [markdown]
+# This shows that the maximum ɸ coverage is effectively independent of the location
+# of the crystal.
 # %%
-
 
 theta = np.linspace(1, 90)
 
