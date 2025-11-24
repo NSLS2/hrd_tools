@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from multihead.config import AnalyzerConfig
 from multihead.corrections import arm_from_z
+
 from hrd_tools.detector_stats import detectors
 
 

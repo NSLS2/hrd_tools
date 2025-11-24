@@ -23,43 +23,19 @@
 # %%
 
 import os
-import time
-from collections import defaultdict
-from collections.abc import Callable
-from dataclasses import asdict, fields
-from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-from multianalyzer import Result
-
-
-from hrd_tools.config import (
-    AnalyzerConfig,
-    CompleteConfig,
-    AnalyzerCalibration,
-    SimScanConfig,
-)
-from hrd_tools.sim_reduction import (
-    find_varied_config,
-    plot_reduced,
-    plot_ref,
-    reduce_file,
-    plot_raw,
-    load_data,
-    reduce_raw,
-    reduce_catalog,
-    load_reference,
-    plot_reduced_cat,
-)
-from hrd_tools.file_io import load_all_config, dflt_config
-from hrd_tools.sim_report import generate_report, Reduced
+import tiled.queries as tq
 
 # %%
 from tiled.client import from_uri
-import tiled.queries as tq
-import tiled
+
+from hrd_tools.sim_reduction import (
+    load_reference,
+    plot_reduced_cat,
+    reduce_catalog,
+)
+from hrd_tools.sim_report import Reduced, generate_report
 
 # %%
 plt.plot(range(5))
@@ -120,7 +96,6 @@ plot_reduced_cat(c2, out2)
 plot_reduced_cat(c2, out2, reference_pattern=reference_pattern)
 
 # %%
-from hrd_tools.sim_reduction import normalize_result
 
 
 # fig = raw_grid(c.values_indexer[-3], out)
@@ -137,7 +112,6 @@ from hrd_tools.sim_reduction import normalize_result
 plot_cat_fwhm_1d(c2, out2, [(7.65, 7.72), (7.975, 8.1)])
 
 # %%
-from typing import Any
 
 
 # %%
