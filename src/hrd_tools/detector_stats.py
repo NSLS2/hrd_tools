@@ -25,7 +25,7 @@ detectors = {
     "timepix4": Detector(
         name="Timepix4",
         pixel_pitch=55.0,
-        sensor_shape=(512, 448),
+        sensor_shape=(448, 512),
         mode=DetectorMode.PHOTON_STAMPING,
     ),
     "medipix3": Detector(
