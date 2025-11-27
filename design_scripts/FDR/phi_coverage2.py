@@ -89,7 +89,8 @@ plt.show()
 # This shows that the maximum ɸ coverage is effectively independent of the location
 # of the crystal.
 # %%
-
+# effect of moving crystal position on max phi
+# Figure 3
 theta = np.linspace(1, 90)
 
 cfgs = [
@@ -98,27 +99,46 @@ cfgs = [
         1030 - middle,
         np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
         2 * np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
-        # crystal_roll=-0.01,
+        crystal_roll=1 / 1000,
     )
-    for middle in [250, 500, 900]
+    for middle in [100, 250, 500, 900, 1000]
 ]
 
-fig, ax = plt.subplots(layout="constrained", figsize=(4, 2.75), dpi=100)
-for cfg in cfgs:
-    sa = effoctive_solid_angle(theta, cfg, 10).squeeze()
+max_phi = np.array([effoctive_solid_angle(theta, cfg, 10).squeeze() for cfg in cfgs])
 
-    ax.plot(
+fig, (ax, ax2) = plt.subplots(
+    2, 1, layout="constrained", figsize=(4, 4.5), dpi=100, sharex=True
+)
+
+ax.plot(
+    theta,
+    np.ptp(max_phi, axis=0),
+    label=f"10 mm detector (ptp)",
+    color="C0",
+    lw=2,
+)
+
+for i, (cfg, middle) in enumerate(zip(cfgs, [100, 250, 500, 900, 1000])):
+    ax2.plot(
         theta,
-        sa,
-        label=f"{cfg.R=}",
+        max_phi[i],
+        label=f"{middle} mm",
+        alpha=0.6,
+        lw=1,
     )
 
-ax.legend()
-ax.set_xlabel(r"$2\theta$ (deg)")
-ax.set_ylabel(r"$\pm\phi_{max}$ (deg)")
-ax.set_ylim(0, 4)
+ax.legend(loc="upper left")
+ax2.legend(loc="upper right")
+ax2.set_xlabel(r"$2\theta$ (deg)")
+ax.set_ylabel(r"$\Delta\phi_{max}$ (deg)")
+ax2.set_ylabel(r"$\pm\phi_{max}$ (deg)")
+
 ax.set_xlim(0, 90)
 
-ax.set_title(f"$\\pm\\phi_{{max}}$ at {cfg.R + cfg.Rd:.2f} mm")
+fig.suptitle(
+    f"Peak-to-peak variation in $\\pm\\phi_{{max}}$ for crystal positions 100-1000 mm"
+)
 
 plt.show()
+
+# %%
