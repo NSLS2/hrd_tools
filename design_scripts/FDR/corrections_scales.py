@@ -57,7 +57,7 @@ det_size = dict(
 
 
 # Define detector positions along the axial direction
-z = np.array(np.linspace(-20, 20, 256))
+z = np.linspace(-20, 20, 256)
 
 
 # %% [markdown]
@@ -101,11 +101,19 @@ for det_name, det_size_val in det_size.items():
     )
     # Add text label using BlendedTransform
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
-    ax.text(x_pos, 0.05, det_name, transform=trans, rotation=90, 
-            verticalalignment='bottom', horizontalalignment='right',
-            fontsize=8, alpha=0.7)
+    ax.text(
+        x_pos,
+        0.05,
+        det_name,
+        transform=trans,
+        rotation=90,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        fontsize=8,
+        alpha=0.7,
+    )
     side *= -1
-ax.set_ylim(bottom=-.04)
+ax.set_ylim(bottom=-0.04)
 ax.set_xlim(-20, 20)
 plt.show(block=False)
 
@@ -141,15 +149,23 @@ for det_name, det_size_val in det_size.items():
     )
     # Add text label using BlendedTransform
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
-    ax.text(x_pos, 0.05, det_name, transform=trans, rotation=90, 
-            verticalalignment='bottom', horizontalalignment='right',
-            fontsize=8, alpha=0.7)
+    ax.text(
+        x_pos,
+        0.05,
+        det_name,
+        transform=trans,
+        rotation=90,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        fontsize=8,
+        alpha=0.7,
+    )
     side *= -1
 
 ax.legend()
 ax.set_ylabel(r"$2\Theta - 2\theta$ (deg)")
 ax.set_xlabel(r"axial offset from center of detector (mm)")
 ax.set_title("Scattering Angle Correction given Arm Position")
-ax.set_ylim(bottom=-.04)
+ax.set_ylim(bottom=-0.04)
 ax.set_xlim(-20, 20)
 plt.show(block=True)

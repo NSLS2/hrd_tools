@@ -138,4 +138,3 @@ for subplot_idx, pixel_size in enumerate(sorted_pixel_sizes):
 
 fig1.suptitle("Inherent 2θ correction error vs 2Θ angle")
 plt.show()
-
