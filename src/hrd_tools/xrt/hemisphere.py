@@ -88,7 +88,7 @@ class Endstation:
         # "raw" beam
         beamLine = self.bl
         geometricSource01beamGlobal01 = beamLine.geometricSource01.shine()
-        screen01beamLocal01 = beamLine.screen_main.expose(
+        screen01beamLocal01 = beamLine.screen_main.expose(  # noqa: F841
             beam=geometricSource01beamGlobal01
         )
         screen02beamLocal01 = beamLine.strip_sphere.expose(

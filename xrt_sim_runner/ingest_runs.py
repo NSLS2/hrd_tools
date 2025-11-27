@@ -32,6 +32,7 @@ from tiled.client import from_uri
 
 from hrd_tools.sim_reduction import (
     load_reference,
+    plot_cat_fwhm_1d,
     plot_reduced_cat,
     reduce_catalog,
 )
@@ -61,7 +62,7 @@ reference_pattern = load_reference(
 c_roll = c.search(tq.Contains("varied_key", "analyzer.roll"))
 
 # %%
-c_roll
+print(c_roll)
 
 
 # %%
