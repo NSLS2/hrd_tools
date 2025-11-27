@@ -1,10 +1,11 @@
 # %%
+from typing import NamedTuple
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
-from matplotlib.collections import PolyCollection
 import numpy as np
 import xrt.backends.raycing.materials as rmats
+from matplotlib.collections import PolyCollection
 
 # %%
 plt.switch_backend("qtagg")
@@ -19,7 +20,27 @@ darwin_rad = crystal.get_Darwin_width(E)
 
 
 # %%
-def line_from_point_angle(x, y, theta):
+class Line(NamedTuple):
+    """Represents a line in slope-intercept form: y = slope * x + intercept"""
+
+    slope: float
+    intercept: float
+
+
+class GaugeWedge(NamedTuple):
+    """Represents the three lines defining a gauge volume wedge"""
+
+    bottom: Line
+    center: Line
+    top: Line
+
+
+# Type alias for trapezoid corners
+Point2D = tuple[float, float]
+Trapezoid = tuple[Point2D, Point2D, Point2D, Point2D]
+
+
+def line_from_point_angle(x: float, y: float, theta: float) -> Line:
     """
     Calculate the slope and intercept of a line passing through (x, y) at angle theta.
 
@@ -34,10 +55,8 @@ def line_from_point_angle(x, y, theta):
 
     Returns
     -------
-    slope : float
-        Slope of the line (m in y = mx + b)
-    intercept : float
-        y-intercept of the line (b in y = mx + b)
+    Line
+        Named tuple containing slope and intercept (y = slope * x + intercept)
 
     Notes
     -----
@@ -45,10 +64,15 @@ def line_from_point_angle(x, y, theta):
     """
     slope = np.tan(theta)
     intercept = y - slope * x
-    return slope, intercept
+    return Line(slope, intercept)
 
 
-def crystal_gague_shape(R, theta, delta_theta=np.rad2deg(darwin_rad), offset=0.0):
+def crystal_gague_shape(
+    R: float,
+    theta: float,
+    delta_theta: float = np.rad2deg(darwin_rad),
+    offset: float = 0.0,
+) -> GaugeWedge:
     """
     Calculate the edges an center of Gauge wedge.
 
@@ -66,9 +90,8 @@ def crystal_gague_shape(R, theta, delta_theta=np.rad2deg(darwin_rad), offset=0.0
 
     Returns
     -------
-    lines : list of tuples
-        List of three (slope, intercept) tuples for the lines at angles
-        [theta - delta_theta, theta, theta + delta_theta]
+    GaugeWedge
+        Named tuple containing the three lines (bottom, center, top) defining the gauge wedge
     """
     # Convert degrees to radians
     theta_rad = np.deg2rad(theta)
@@ -83,27 +106,29 @@ def crystal_gague_shape(R, theta, delta_theta=np.rad2deg(darwin_rad), offset=0.0
     dy_perp = np.sin(theta_rad + np.pi / 2)
 
     # Calculate slope and intercept for each of the three angles with appropriate offsets
-    return [
-        line_from_point_angle(
+    return GaugeWedge(
+        bottom=line_from_point_angle(
             x - offset * dx_perp, y - offset * dy_perp, theta_rad - delta_theta_rad
         ),
-        line_from_point_angle(x, y, theta_rad),
-        line_from_point_angle(
+        center=line_from_point_angle(x, y, theta_rad),
+        top=line_from_point_angle(
             x + offset * dx_perp, y + offset * dy_perp, theta_rad + delta_theta_rad
         ),
-    ]
+    )
 
 
-def gague_corners(line1, line2, y_lower, y_upper):
+def gague_corners(
+    line1: Line, line2: Line, y_lower: float, y_upper: float
+) -> Trapezoid:
     """
     Calculate the four corner points where two lines intersect horizontal bounds.
 
     Parameters
     ----------
-    line1 : tuple
-        (slope, intercept) for the first line
-    line2 : tuple
-        (slope, intercept) for the second line
+    line1 : Line
+        First line (slope, intercept)
+    line2 : Line
+        Second line (slope, intercept)
     y_lower : float
         Lower horizontal bound
     y_upper : float
@@ -111,9 +136,9 @@ def gague_corners(line1, line2, y_lower, y_upper):
 
     Returns
     -------
-    corners : list of tuples
+    Trapezoid
         Four (x, y) points in clockwise order starting from top-left:
-        [top-left, top-right, bottom-right, bottom-left]
+        (top-left, top-right, bottom-right, bottom-left)
     """
     m1, b1 = line1
     m2, b2 = line2
@@ -139,7 +164,7 @@ def gague_corners(line1, line2, y_lower, y_upper):
         bottom_right = (x1_lower, y_lower)
         bottom_left = (x2_lower, y_lower)
 
-    return [top_left, top_right, bottom_right, bottom_left]
+    return (top_left, top_right, bottom_right, bottom_left)
 
 
 # %%
@@ -154,9 +179,9 @@ line_styles = [
     {"linestyle": "--", "alpha": 0.5},  # Center: dashed, half alpha
     {},  # Upper edge: solid, full alpha
 ]
-for angle, color in zip(angles, colors):
-    lines = crystal_gague_shape(R, angle, offset=75.0 / 1000 * 30 / 2)
-    for idx, (ln, style) in enumerate(zip(lines, line_styles)):
+for angle, color in zip(angles, colors, strict=True):
+    wedge = crystal_gague_shape(R, angle, offset=75.0 / 1000 * 30 / 2)
+    for idx, (ln, style) in enumerate(zip(wedge, line_styles, strict=True)):
         slope, intercept = ln
         y_vals = slope * x_vals + intercept
         # Only add label for the first line of each angle group
@@ -170,13 +195,13 @@ plt.show()
 
 # %%
 # Figure 2
-fig, ax = plt.subplots(figsize=(8, 8), layout="constrained")
-angles = np.linspace(5, 85, 128)
+fig, ax = plt.subplots(layout="constrained")
+angles = np.linspace(1, 90, 128)
 # Collect all polygons
 polygons = []
 for angle in angles:
-    lines = crystal_gague_shape(R, angle, offset=75.0 / 1000 * 30 / 2)
-    corners = gague_corners(lines[0], lines[2], -0.5, 0.5)
+    wedge = crystal_gague_shape(R, angle, offset=75.0 / 1000 * 40 / 2)
+    corners = gague_corners(wedge.bottom, wedge.top, -0.5, 0.5)
     polygons.append(corners)
 
 # Create PolyCollection with colormap
@@ -191,12 +216,18 @@ poly_collection = PolyCollection(
 ax.add_collection(poly_collection)
 
 # Add colorbar horizontally below the axes
-cbar = fig.colorbar(poly_collection, ax=ax, label="Angle (degrees)", orientation="horizontal", location="bottom")
+cbar = fig.colorbar(
+    poly_collection,
+    ax=ax,
+    label="$2\\Theta$ (degrees)",
+    orientation="horizontal",
+    location="bottom",
+)
 
 ax.set_xlim(-5.0, 5.0)
-ax.set_ylim(-.75,.75)
-ax.set_aspect("equal")
-ax.set_xlabel("x (mm)")
+ax.set_ylim(-0.75, 0.75)
+# ax.set_aspect("equal")
+ax.set_xlabel("z (mm)")
 ax.set_ylabel("y (mm)")
 plt.show()
 # %%

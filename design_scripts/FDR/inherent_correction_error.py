@@ -17,7 +17,6 @@ from multihead.corrections import tth_from_z
 
 from hrd_tools.detector_stats import detectors
 
-
 # %%
 # Configuration and setup for plotting
 cfg = AnalyzerConfig(

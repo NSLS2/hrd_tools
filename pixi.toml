@@ -95,8 +95,8 @@ ophyd = ">=1.10.0,<2"
 ruff = "*"
 
 [feature.lint.tasks]
-check = "ruff check --fix --exclude=sims"
-format = "ruff format --exclude=sims"
+check = "ruff check --fix --exclude=sims --exclude=design_scripts/CDR"
+format = "ruff format --exclude=sims --exclude=design_scripts/CDR"
 lint = { depends-on = ["format", "check"] }
 
 [feature.tiled.dependencies]

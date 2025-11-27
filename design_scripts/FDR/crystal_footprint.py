@@ -1,7 +1,8 @@
 import numpy as np
 import xrt.backends.raycing.materials as rmats
-from multihead.corrections import tth_from_z
 from multihead.config import AnalyzerConfig
+from multihead.corrections import tth_from_z
+
 from hrd_tools.detector_stats import detectors
 
 crystal = rmats.CrystalSi(t=1)

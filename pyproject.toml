@@ -117,17 +117,20 @@ extend-ignore = [
   "E501",   # Line too long, trust the formatter to get it right
   "ISC001", # implicit concat, can be handy
   # QA for wrong opinions
-  "RET504", # can use a 'redundent' local if you want
-  "RET505", # return in else (clearer with the `else`)
-  "SIM105", # contextlib.suppress rather than try...except (just use language)
-  "SIM108", # ternaries are not actually clearer (just fewer lines)
-  "PTH123", # Path.open vs open (using the builtin is fine)
-  "PIE804", # creating dict to ** it is fine
-  "C408",   # using dict() is fine
-  "NPY002", # allow the old numpy random generator
-  "PD901",  # df is a fine variable name
-  "EM102",  # use an fstring in an exception if you want
-  "EM101",  # use strings in exceptions if you want
+  "RET504",  # can use a 'redundent' local if you want
+  "RET505",  # return in else (clearer with the `else`)
+  "SIM105",  # contextlib.suppress rather than try...except (just use language)
+  "SIM108",  # ternaries are not actually clearer (just fewer lines)
+  "PTH123",  # Path.open vs open (using the builtin is fine)
+  "PIE804",  # creating dict to ** it is fine
+  "C408",    # using dict() is fine
+  "NPY002",  # allow the old numpy random generator
+  "PD901",   # df is a fine variable name
+  "EM102",   # use an fstring in an exception if you want
+  "EM101",   # use strings in exceptions if you want
+  "PLC2401", # greek letters in code is fine
+  "E741",    # I is sensible varibale name in this domian
+  "PLC0415", # buried imports are fine
 ]
 unfixable = [
   "T20",  # Removes print statements
@@ -139,5 +142,3 @@ isort.required-imports = []
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["T20"]
 "noxfile.py" = ["T20"]
-
-
