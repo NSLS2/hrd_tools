@@ -151,7 +151,7 @@ def scan(
     bad = {f"screen{screen:02d}": [] for screen in range(bl.analyzer.N)}
     for tth in tqdm.tqdm(tths):
         bl.set_arm(tth)
-        images, *rest = bl.get_frames()
+        images, *_rest = bl.get_frames()
         for k, v in images.items():
             good[k].append(v["good"])
             bad[k].append(v["bad"])
@@ -350,7 +350,7 @@ def reduce_raw(
 def bench_mark(res, df):
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots()
+    _fig, ax = plt.subplots()
     ax.plot(df.theta, df.I1 / df.I1.max(), label="source", zorder=15, lw=3, ls="--")
     # for j, (I, n) in enumerate(zip(res.signal, res.norm)):
     #     ax.plot(res.tth, I/I.max(), label=f'cry {j}', alpha=.5)
@@ -365,7 +365,7 @@ def bench_mark(res, df):
 def overlay(screen):
     import matplotlib.pyplot as plt
 
-    fig, ax = plt.subplots()
+    _fig, ax = plt.subplots()
 
     ax.imshow(screen["bad"], aspect="auto", cmap="gray_r")
     ax.imshow(screen["good"], aspect="auto", alpha=0.5)

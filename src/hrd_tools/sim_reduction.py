@@ -59,7 +59,7 @@ def cat_to_fwhm(
     for key, run in cat.items():
         if config_filter is not None and not config_filter(run.metadata):
             continue
-        (res, config, _) = results[(cat.uri, key)]
+        (res, _config, _) = results[(cat.uri, key)]
         tth = res.tth
         (normed,) = normalize_result(res)
         fwhm = peak_fwhm(tth, normed, limits=limits)
@@ -216,7 +216,7 @@ def reduce_raw(
         # mis-orientation of the analyzer along y (°)
         rolly=[0.0] * analyzer.N,
     )
-    frames, _, num_col, rox_max = block.shape
+    _frames, _, _num_col, rox_max = block.shape
     ret = mma.integrate(
         # data all stacked as one
         roicollection=block,
@@ -379,7 +379,7 @@ def plot_reduced(
     **kwargs,
 ):
     if ax is None:
-        fig, ax = plt.subplots(layout="constrained")
+        _fig, ax = plt.subplots(layout="constrained")
         # this should be length 1, sum just to be safe, is higher if in non-ROI mode
     for j, normed in enumerate(normalize_result(res, scale_to_max)):
         if label is not None:

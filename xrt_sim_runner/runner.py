@@ -38,7 +38,7 @@ def scan_to_file(
             try:
                 for j, tth in enumerate(batch_tth):  # noqa: B007
                     bl.set_arm(tth)
-                    images, *rest = bl.get_frames()
+                    images, *_rest = bl.get_frames()
                     for k, v in images.items():
                         good[k].append(v["good"])
                         # bad[k].append(v["bad"])

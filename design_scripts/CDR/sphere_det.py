@@ -106,7 +106,7 @@ def oro(endstation):
     x, y, z = a.x, a.z, a.y
     hit_locations = np.vstack([x, y, z]).T
 
-    fig, ax_list = plt.subplots(3, layout="constrained")
+    _fig, ax_list = plt.subplots(3, layout="constrained")
 
     for label, data, ax in zip("xyz", hit_locations.T, ax_list, strict=True):
         ax.hist(data, bins="auto")
@@ -116,7 +116,7 @@ def oro(endstation):
 # %%
 def batch_run(endstation, N=100):
     I_stack = []
-    for j in range(N):
+    for _j in range(N):
         (a,) = endstation.run_process().values()
         I, bins = build_hist(endstation, a)
         I_stack.append(I)

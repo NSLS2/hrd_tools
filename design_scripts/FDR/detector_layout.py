@@ -58,7 +58,7 @@ def angle_to_measure(primary: Primary, max_theta: float, *, N=1024):
 # plot2()
 def plot_layout(det, *, ax=None, target=100):
     if ax is None:
-        fig, ax = plt.subplots(layout="constrained", figsize=(4, 3))
+        _fig, ax = plt.subplots(layout="constrained", figsize=(4, 3))
     ax.set_aspect("equal")
     ax.set_ylim(-0.1, 1)
     ax.set_xlim(1, -0.5)
