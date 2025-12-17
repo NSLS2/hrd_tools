@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xrt.backends.raycing.materials as rmats
 from matplotlib.collections import PolyCollection
+from matplotlib.patches import Circle, Annulus
 
 # %%
 plt.switch_backend("qtagg")
@@ -17,7 +18,7 @@ R = 910  # in mm
 
 # in rad
 darwin_rad = crystal.get_Darwin_width(E)
-
+print(np.rad2deg(darwin_rad))
 
 # %%
 class Line(NamedTuple):
@@ -169,7 +170,7 @@ def gague_corners(
 
 # %%
 # Figure 1
-fig, ax = plt.subplots(figsize=(8, 8), layout="constrained")
+fig, ax = plt.subplots(layout="constrained", figsize=(8, 4.5))
 x_vals = np.array([-5, 1000])
 angles = [5, 45, 85]
 colors = mpl.colormaps["tab10"](range(3))  # Get 3 distinct colors
@@ -179,18 +180,42 @@ line_styles = [
     {"linestyle": "--", "alpha": 0.5},  # Center: dashed, half alpha
     {},  # Upper edge: solid, full alpha
 ]
+pixels = 1
 for angle, color in zip(angles, colors, strict=True):
-    wedge = crystal_gague_shape(R, angle, offset=75.0 / 1000 * 30 / 2)
+    wedge = crystal_gague_shape(R, angle, offset=75.0 / 1000 * pixels / 2)
     for idx, (ln, style) in enumerate(zip(wedge, line_styles, strict=True)):
         slope, intercept = ln
         y_vals = slope * x_vals + intercept
         # Only add label for the first line of each angle group
-        label = f"$2\\Theta$={angle:.2f}°" if idx == 0 else None
+        label = f"$2\\Theta$={angle:.2f}° (1 pixel)" if idx == 0 else None
         ax.plot(x_vals, y_vals, color=color, label=label, **style)
+pixels = 31
+for angle, color in zip(angles, colors, strict=True):
+    wedge = crystal_gague_shape(R, angle, offset=75.0 / 1000 * pixels / 2)
+    for idx, (ln, style) in enumerate(zip(wedge, line_styles, strict=True)):
+        if idx == 1:
+            continue
+        slope, intercept = ln
+        y_vals = slope * x_vals + intercept
+        # Only add label for the first line of each angle group
+        label = f"$2\\Theta$={angle:.2f}° ({pixels} pixels)" if idx == 0 else None
+        ax.plot(x_vals, y_vals, color=color, label=label, **{**style, 'alpha':.2}, zorder=2)
+
+ID = 1
+OD = 1.1
+
+sample = Circle((0, 0), (ID / 2), color='r', zorder=0, alpha=.75, label='sample'
+              )
+tube = Annulus((0, 0), (OD / 2), (OD - ID) / 2, color='k', zorder=0, label='capillary wall')
+ax.add_artist(sample)
+ax.add_artist(tube)
 ax.axhspan(-0.5, 0.5, color="gray", alpha=0.5, label="Incoming beam")
 ax.set_xlim(-5.0, 5.0)
 ax.set_ylim(-2.0, 2.0)
-ax.legend()
+ax.set_aspect('equal')
+ax.legend(ncol=3, bbox_to_anchor=(0., 1.02, 1., .102),mode="expand", borderaxespad=0. )
+ax.set_xlabel('z (mm)')
+ax.set_ylabel('y (mm)')
 plt.show()
 
 # %%
