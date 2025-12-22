@@ -1,7 +1,7 @@
 # %% [markdown]
-# # Ineherent correction error
+# # Ineherent correction uncertainty
 #
-# There is an inherent error in the correction due to the finite width
+# There is an inherent uncertainty in the correction due to the finite width
 # of the detectors pixels.  The inside and outside edges of the pixel
 # will correct to slightly different 2θ and ɸ values.  When this exceeds
 # the target resolution there is no longer a gain from integrating
@@ -40,7 +40,7 @@ for name in selected_detectors:
 print(det_props)
 
 # %%
-# Plot 1: Error vs z position for different 2theta values
+# Plot 1: Uncertainty vs z position for different 2theta values
 # Group detectors by pixel size
 pixel_size_groups = {}
 for det_name in selected_detectors:
@@ -68,7 +68,7 @@ fig1, axes1 = plt.subplots(
 if n_pixel_sizes == 1:
     axes1 = [axes1]
 
-tth_arm_values = [10, 30, 60, 90]  # degrees
+tth_arm_values = [10, 20, 30, 60, 90]  # degrees
 tth_colors = mpl.colormaps["viridis"](np.linspace(0, 1, len(tth_arm_values)))
 
 # Find the largest detector width to set the plotting range (in mm)
@@ -97,7 +97,7 @@ for subplot_idx, pixel_size in enumerate(sorted_pixel_sizes):
     for i, tth in enumerate(tth_arm_values):
         ax.plot(
             z_pos,
-            delta_2theta[i],
+            1000*delta_2theta[i],
             color=tth_colors[i],
             label=f"$2\\Theta$ = {tth}°",
             linewidth=2,
@@ -105,16 +105,19 @@ for subplot_idx, pixel_size in enumerate(sorted_pixel_sizes):
 
     # Create blended transform: data coords for x, axes coords for y
     trans = blended_transform_factory(ax.transData, ax.transAxes)
-
+    trans2 = blended_transform_factory(ax.transAxes, ax.transData)
+    widths_hit = {}
     # Add vertical lines for detectors with this pixel size
     for det_name in pixel_size_groups[pixel_size]:
         det_width = det_props[det_name]["width"]
-        ax.axvline(x=det_width / 2, color="gray", linestyle="--", alpha=0.7)
+        scale = widths_hit.get(det_width, 0)
+        if scale == 0:
+            ax.axvline(x=det_width / 2, color="gray", linestyle="--", alpha=0.7)
 
         # Add detector name annotation at top of axes
         ax.annotate(
             det_name,
-            xy=(det_width / 2, 1.0),
+            xy=(det_width / 2, 1.0 - .25*scale),
             xytext=(2, -2),
             textcoords="offset points",
             xycoords=trans,
@@ -124,16 +127,25 @@ for subplot_idx, pixel_size in enumerate(sorted_pixel_sizes):
             va="top",
             ha="left",
         )
+        widths_hit[det_width] = scale + 1
 
     ax.set_title(f"{pixel_size * 1e3:.0f} µm pixel")
     ax.grid(True, alpha=0.3)
 
+    ax.axhline(1e-1, ls=':', alpha=.5, color='k')
+    ax.annotate(
+        "Maximum\nuncertainty",
+        xy=(0, .1),
+        xycoords=trans2,
+        xytext=(2, 2),
+        textcoords="offset points",
+    )
     # Only add legend to first subplot
     if subplot_idx == 0:
         ax.legend()
-        ax.set_ylabel("2θ correction error (deg)")
+        ax.set_ylabel("2θ correction uncertainty  (mdeg)")
 
     ax.set_xlabel("Distance from detector center (mm)")
 
-fig1.suptitle("Inherent 2θ correction error vs 2Θ angle")
+fig1.suptitle("Inherent 2θ correction uncertainty vs 2Θ angle")
 plt.show()

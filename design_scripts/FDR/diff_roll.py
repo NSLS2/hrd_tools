@@ -14,7 +14,7 @@ from scipy.optimize import root_scalar
 v_div = 0.9
 h_div = 18.0
 # accept 1% increase in divergence
-max_div_perc = 0.005
+max_div_perc = 0.01
 max_div = v_div * (1 + max_div_perc)
 
 

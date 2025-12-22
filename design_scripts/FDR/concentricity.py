@@ -8,6 +8,8 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+from hrd_tools.xrt import CrystalProperties
+print(f'{plt.get_backend()=}')
 
 # %%
 # At any given point on the analyzer crystal there is a line along with
@@ -24,13 +26,8 @@ import numpy as np
 # The size of the region that will be accepted is larger the farther the scattering
 # location is from the crystal, thus the gauge volume is a wedge shape.
 # %%
-import xrt.backends.raycing.materials as rmats
+crystal_props = CrystalProperties.create(E=25)
 
-E = 25_000
-crystal = rmats.CrystalSi(t=1)
-bragg = crystal.get_Bragg_angle(E)
-# in radians
-darwin = crystal.get_Darwin_width(E)
 # %%
 
 
@@ -45,26 +42,25 @@ def gauge_width(R: float, energy: float) -> float:
     R : float
         Distance from the crystal surface in the same units as desired for the output
     energy : float
-        X-ray energy in eV
+        X-ray energy in keV
 
     Returns
     -------
     float
         Width of the gauge volume at distance R from the crystal surface
     """
-    crystal = rmats.CrystalSi(t=1)
-    darwin = crystal.get_Darwin_width(energy)
-    return R * np.tan(darwin)
+    props = CrystalProperties.create(E=energy)
+    return R * np.tan(np.radians(props.darwin_width))
 
 
 # %%
 # Plot gauge width vs energy
-energies = np.linspace(10_000, 40_000, 1000)
+energies = np.linspace(10, 40, 1000)
 widths = [gauge_width(1000000, E) for E in energies]
 
 fig = plt.figure(figsize=(10, 6), layout="constrained")
 ax = fig.add_subplot(111)
-ax.plot(energies / 1000, widths)  # Convert to keV for plotting
+ax.plot(energies, widths)  # Convert to keV for plotting
 ax.set_xlabel("Energy (keV)")
 ax.set_ylabel("Gauge Width (um)")
 ax.set_title("Inherent Gauge Width at R=1m vs Energy")
@@ -74,7 +70,7 @@ fig.show()
 # Plot gauge width vs distance at 30kEV
 
 R = np.linspace(0, 10_000_000, 512)
-widths = gauge_width(R, 30_000)
+widths = gauge_width(R, 30)
 
 fig = plt.figure(figsize=(10, 6), layout="constrained")
 ax = fig.add_subplot(111)
@@ -95,4 +91,6 @@ fig.show()
 # to within 2 um (1/3 the gauge width at 40keV an 1m)
 
 # %%
-# The above analysis only considers
+# The above analysis only considers\
+plt.show(block=True)
+print('bye' )

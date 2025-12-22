@@ -35,13 +35,20 @@ from multihead.corrections import arm_from_z, tth_from_z
 
 from hrd_tools.detector_stats import detectors
 
+from hrd_tools.xrt import CrystalProperties
 # %%
+
+mpl.rcParams['savefig.dpi'] = 300
+
+# %%
+props = CrystalProperties.create(E=40)
+
 # Configure analyzer with realistic parameters
 cfg = AnalyzerConfig(
     910,  # R: sample to crystal distance (mm)
     120,  # Rd: crystal to detector distance (mm)
-    np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),  # theta_i: incident angle
-    2 * np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),  # theta_d: diffraction angle
+    props.bragg_angle,
+    2*props.bragg_angle,
     detector_roll=0,
 )
 # in mm
@@ -113,7 +120,7 @@ for det_name, det_size_val in det_size.items():
         alpha=0.7,
     )
     side *= -1
-ax.set_ylim(bottom=-0.04)
+ax.set_ylim(top=.005, bottom=-0.04)
 ax.set_xlim(-20, 20)
 plt.show(block=False)
 
@@ -166,6 +173,6 @@ ax.legend()
 ax.set_ylabel(r"$2\Theta - 2\theta$ (deg)")
 ax.set_xlabel(r"axial offset from center of detector (mm)")
 ax.set_title("Scattering Angle Correction given Arm Position")
-ax.set_ylim(bottom=-0.04)
+ax.set_ylim(top=.005, bottom=-0.04)
 ax.set_xlim(-20, 20)
 plt.show(block=True)

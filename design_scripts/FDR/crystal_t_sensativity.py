@@ -7,7 +7,7 @@ from hrd_tools.xrt import CrystalProperties
 
 # %%
 room = 295.0  # K
-start, stop = room - 15, room + 15  # K
+start, stop = room - 7, room + 7  #
 
 E = 40  # kEv
 steps = 128
@@ -31,28 +31,56 @@ def f(T, delta):
     return delta - (ref.bragg_angle - prop.bragg_angle)
 
 
-lower = optimize.root_scalar(f, args=(delta_theta,), bracket=[start, stop])
-upper = optimize.root_scalar(f, args=(-delta_theta,), bracket=[start, stop])
+vlines = {}
+
+# %%
+for frac in [10, 100]:
+    delta_theta = ref.darwin_width / frac
+
+    lower = optimize.root_scalar(f, args=(delta_theta,), bracket=[start, stop])
+    upper = optimize.root_scalar(f, args=(-delta_theta,), bracket=[start, stop])
+
+    vlines[frac] = (lower.root, upper.root)
+
 # %%
 fig, ax = plt.subplots(layout="constrained")
 
-ax.set_title(
-    f"<{delta_theta * 1e6:.2f}μdeg Bragg shift requires [{upper.root - room:.2f}, {lower.root - room:.2f}]K stability"
-)
 ax.plot(
     [p.crystal.tK - room for p in props],
     [(p.bragg_angle - ref.bragg_angle) * 1000 * 1000 for p in props],
     label="Si 111",
+    color="k",
 )
 
-ax.axhspan(
-    -delta_theta * 1e6,
-    delta_theta * 1e6,
-    color="r",
-    alpha=0.5,
-    label=rf"$\pm {delta_theta * 1e6:.2f}$ (μdeg)",
-)
-ax.legend()
+trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+for (frac, (l, h)), style in zip(
+    vlines.items(), [{"ls": ":"}, {"ls": "--"}], strict=True
+):
+    ax.axvline(l - room, color=".7", **style)
+    ax.axvline(h - room, color=".7", **style)
+    ax.text(
+        h - room,
+        0.05,
+        f"{1e6 * ref.darwin_width / frac:.2f} μdeg (Darwin/{frac})",
+        transform=trans,
+        rotation=90,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        fontsize=10,
+        alpha=0.7,
+    )
+    ax.text(
+        l - room,
+        0.95,
+        f"[{h - room:.2f}, {l - room:.2f}] K",
+        transform=trans,
+        rotation=90,
+        verticalalignment="top",
+        horizontalalignment="right",
+        fontsize=10,
+        alpha=0.7,
+    )
+ax.set_xlim(-6, 6)
 ax.set_xlabel(rf"$\Delta T$ from {room} (K)")
 ax.set_ylabel(r"$\Delta \theta_{bragg}$ (μdeg)")
 plt.show()

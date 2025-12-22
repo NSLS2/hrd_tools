@@ -20,7 +20,25 @@ print("Z footprint")
 E = 40
 for max_z in [3, 5]:
     print(
-        f"At {E}kEv with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E)}mm"
+        f"At {E}kEv with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
+    )
+
+
+for max_z in [3, 5]:
+    print(
+        f"{E}kEv\t{max_z:} mm \t {footprint(max_z, 90, E):.2f} mm"
+    )
+
+E = 30
+for max_z in [3, 5]:
+    print(
+        f"At {E}kEv with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
+    )
+
+
+for max_z in [3, 5]:
+    print(
+        f"{E}kEv\t{max_z:} mm \t {footprint(max_z, 90, E):.2f} mm"
     )
 
 
@@ -60,4 +78,12 @@ for (det_name, det_width), cry_z in zip(
     print(
         f"{det_name: <8} ({det_width:.2f} mm wide) "
         f"require {cry_z:.2f} mm strain free crystal width"
+    )
+
+for (det_name, det_width), cry_z in zip(
+    det_size.items(), on_cry_size.squeeze(), strict=True
+):
+    print(
+        f"{det_name: <8}\t{det_width:.2f} mm\t"
+        f"{cry_z:.2f} mm"
     )

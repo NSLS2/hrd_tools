@@ -9,7 +9,7 @@ from matplotlib.collections import PolyCollection
 from matplotlib.patches import Circle, Annulus
 
 # %%
-plt.switch_backend("qtagg")
+# plt.switch_backend("qtagg")
 # %%
 E = 30_000
 crystal = rmats.CrystalSi(t=1)

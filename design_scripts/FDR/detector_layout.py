@@ -174,7 +174,7 @@ def min_to_theta(det, target):
 
 
 # %%
-layout = Primary(Bank(12, 2.5), 4, 11 * 2.5 + 5)
+layout = Primary(Bank(12, 2), 4, 11 * 2 + 7)
 # layout = Primary(Bank(8, 2), 6, 7*2 + 5)
 # layout = Primary(Bank(48, 2.5), 1, 0)
 
