@@ -35,9 +35,9 @@ detectors = {
         mode=DetectorMode.COUNTING,
     ),
     "eiger2": Detector(
-        name="Eiger2",
+        name="Eiger2 500k",
         pixel_pitch=75.0,
-        sensor_shape=(1028, 512),
+        sensor_shape=(512, 1028),
         mode=DetectorMode.COUNTING,
     ),
     "timepix3": Detector(

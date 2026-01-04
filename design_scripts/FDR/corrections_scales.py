@@ -100,6 +100,8 @@ ax.set_title("Arm Angle Correction given Scattering Angle")
 side = 1
 for det_name, det_size_val in det_size.items():
     x_pos = side * det_size_val / 2
+    if x_pos > 20:
+        continue
     ax.axvline(
         x_pos,
         color="gray",
@@ -148,6 +150,8 @@ for corr_tth, arm_tth, color in zip(
 side = 1
 for det_name, det_size_val in det_size.items():
     x_pos = side * det_size_val / 2
+    if x_pos > 20:
+        continue
     ax.axvline(
         x_pos,
         color="gray",
