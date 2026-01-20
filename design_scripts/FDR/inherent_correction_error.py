@@ -149,3 +149,80 @@ for subplot_idx, pixel_size in enumerate(sorted_pixel_sizes):
 
 fig1.suptitle("Inherent 2θ correction uncertainty vs 2Θ angle")
 plt.show()
+
+
+# %%
+
+# Figure 2: effect of crystal position on error
+tth_arm_values_fig2 = np.linspace(1, 90, 90)
+
+cfgs_fig2 = [
+    AnalyzerConfig(
+        middle,
+        1030 - middle,
+        np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
+        2 * np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
+        crystal_roll=1 / 1000,
+    )
+    for middle in [100, 250, 500, 900, 1000]
+]
+
+# Fixed pixel size of 55 µm = 0.055 mm
+pixel_size_fig2 = 0.055
+
+# Calculate correction error for each configuration
+# Using a small z range around the pixel center to capture edge effects
+z_edges = np.array([0, pixel_size_fig2])  # edges of one pixel at center
+
+delta_2theta_all = []
+for cfg in cfgs_fig2:
+    (tth_corrected), (phi_corrected) = tth_from_z(
+        z_edges.reshape(1, -1),
+        tth_arm_values_fig2.reshape(-1, 1),
+        cfg,
+    )
+    # Calculate difference between pixel edges
+    delta_2theta = np.abs(tth_corrected[:, 1] - tth_corrected[:, 0])
+    delta_2theta_all.append(delta_2theta)
+
+delta_2theta_all = np.array(delta_2theta_all)
+
+# Create two-panel plot
+fig2, (ax_ptp, ax_raw) = plt.subplots(
+    2, 1, layout="constrained", figsize=(4, 4.5), dpi=100, sharex=True
+)
+
+# Top panel: peak-to-peak variation
+ax_ptp.plot(
+    tth_arm_values_fig2,
+    np.ptp(delta_2theta_all, axis=0),
+    label=f"55 µm pixel (ptp)",
+    color="C0",
+    lw=2,
+)
+
+# Bottom panel: individual configurations
+for i, middle in enumerate([100, 250, 500, 900, 1000]):
+    ax_raw.plot(
+        tth_arm_values_fig2,
+        delta_2theta_all[i],
+        label=f"{middle} mm",
+        alpha=0.6,
+        lw=1,
+    )
+
+ax_ptp.legend(loc="upper left")
+ax_raw.legend(loc="upper right")
+ax_raw.set_xlabel(r"$2\theta$ (deg)")
+ax_ptp.set_ylabel(r"$\Delta$(2θ error) (deg)")
+ax_raw.set_ylabel(r"2θ error (deg)")
+
+ax_ptp.set_xlim(0, 90)
+ax_ptp.grid(True, alpha=0.3)
+ax_raw.grid(True, alpha=0.3)
+
+fig2.suptitle(
+    f"Peak-to-peak variation in 2θ correction error for crystal positions 100-1000 mm"
+)
+
+plt.show()
