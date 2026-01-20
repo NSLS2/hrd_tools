@@ -192,3 +192,56 @@ for row, pitch in zip(ax_arr, [2, 2.5, 3], strict=True):
         plot_layout(layout, ax=ax, target=125)
 fig.savefig("/tmp/layout_grid.png", dpi=300)
 plt.show()
+
+# %%
+
+fig, ax = plt.subplots(layout='constrained')
+
+ax.plot(*angle_to_measure(layout, 45)[::-1], color='k')
+ax.set_xlim(0, 45)
+ax.set_ylim(bottom=0)
+ax.set_xlabel(r'arm $2\Theta$')
+ax.set_ylabel(r'covered $2\Theta$')
+ax.annotate(
+        "'spotlight'",
+        (0, 10),
+
+        xytext=(3, 0),
+        textcoords="offset points",
+        va="bottom",
+        ha='left',
+        usetex=True,
+        rotation=90
+    )
+ax.annotate(
+        "'hi-rep'",
+        (2, 24),
+        arrowprops=dict(arrowstyle="-|>"),
+        xytext=(0, 25),
+        textcoords="offset points",
+        va="bottom",
+        ha='center',
+        usetex=True,
+
+    )
+ax.annotate(
+        "'full coverage'",
+        (6, 112),
+        arrowprops=dict(arrowstyle="-|>"),
+        xytext=(0, 15),
+        textcoords="offset points",
+        va="bottom",
+        ha='center',
+        usetex=True,
+
+    )
+ax.annotate(
+        "'extended'",
+        (25, 100),
+
+        xytext=(0, 0),
+        textcoords="offset points",
+        va="bottom",
+        ha='center',
+        usetex=True,
+    )
