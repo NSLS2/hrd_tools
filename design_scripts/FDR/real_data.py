@@ -1,3 +1,8 @@
+# %% [markdown]
+# The goal here is to generate a set of figures demonstrating what
+# the raw data looks like and how we transform it to the 1D scattering
+# curves.
+#
 # %%
 from io import StringIO
 from pathlib import Path
@@ -9,7 +14,7 @@ import numpy as np
 import scipy.signal
 from multihead.config import DetectorROIs
 from multihead.file_io import open_data
-from multihead.raw_proc import get_roi_sum
+
 
 # %%
 roi_data = StringIO("""rois:
