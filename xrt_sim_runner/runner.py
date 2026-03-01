@@ -82,13 +82,13 @@ def dump_coro(fname, cache_rate, *, tlg="sim"):
         while True:
             payload = yield
 
-            g = f[tlg]
+            g : h5py.Group = f[tlg]
 
             if payload[0].shape[0] != payload[1].shape[0]:
                 print(f"{payload[0].shape[0]} == {payload[1].shape[0]}")
             assert payload[0].shape[0] == payload[1].shape[0]
             for name, data in zip(("tth", "block"), payload, strict=True):
-                ds = g[name]
+                ds : h5py.Dataset = g[name]
                 cur_len = ds.shape[0]
                 ds.resize(cur_len + data.shape[0], axis=0)
                 ds[cur_len:] = data
