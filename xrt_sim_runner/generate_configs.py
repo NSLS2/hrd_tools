@@ -19,9 +19,9 @@ from hrd_tools.config import (
 )
 
 
-def get_defaults():
-    min_tth = 20
-    max_tth = 20.5
+def get_defaults(
+    min_tth = 20,
+    max_tth = 20.5):
     return CompleteConfig(
         **{
             "source": SourceConfig(
@@ -29,11 +29,13 @@ def get_defaults():
                 pattern_path="/nsls2/data3/projects/next_iiia_hrd/sim_input/11bmb_7871_Y1.xye",
                 dx=1,
                 dz=1,
-                dy=10,
-                delta_phi=16,
+                dy=1,
+                # TODO set this based on detector + R + Rd + min_tth
+                delta_phi=3,
                 E_hwhm=1.4e-4,
-                h_div=np.rad2deg(120e-6),
-                v_div=np.rad2deg(100e-6),
+                # default to unfocused
+                h_div=np.rad2deg(22e-6),
+                v_div=np.rad2deg(0.9e-6),
                 max_tth=max_tth,
                 min_tth=min_tth,
                 source_offset_x=0,
@@ -42,10 +44,11 @@ def get_defaults():
             ),
             "sim": SimConfig(nrays=500_000),
             "detector": DetectorConfig(
-                pitch=0.055, transverse_size=512, height=0.055 * 30
+                # default to mediapix3
+                pitch=0.055, transverse_size=256, height=10
             ),
             "analyzer": AnalyzerConfig(
-                R=1000,
+                R=950,
                 Rd=115,
                 cry_offset=np.deg2rad(2.5),
                 cry_width=102,
@@ -53,7 +56,7 @@ def get_defaults():
                 N=1,
                 # will be set when buliding end station
                 incident_angle=0,
-                thickness=1,
+                thickness=10,
                 roll=0,
             ),
             "scan": SimScanConfig(start=min_tth, stop=max_tth, delta=1e-4),
