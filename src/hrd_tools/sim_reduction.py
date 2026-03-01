@@ -205,6 +205,7 @@ def reduce_raw(
         tha=analyzer.incident_angle,
         # global offset of MCA vs arm position
         # TODO pull from calibration structure
+        # passing 0 defaults to 2x tha
         thd=0.0,
         # offsets of each crystal from origin of MCA
         # TODO pull from calibration structure
