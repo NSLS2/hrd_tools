@@ -12,4 +12,12 @@
 
 mkdir -p output
 
-pixi run -e xrt --frozen python runner2.py configs/config_$SLURM_ARRAY_TASK_ID.toml /nsls2/data3/projects/next_iiia_hrd/xrt_output/$(date '+%Y%m%d')/${SLURM_ARRAY_JOB_ID}/$SLURM_ARRAY_TASK_ID  --cache-rate=200
+
+RUN_DATE=$(date '+%Y%m%d')
+OUTPUT_DIR=/nsls2/data3/projects/next_iiia_hrd/xrt_output/${RUN_DATE}/${SLURM_ARRAY_JOB_ID}/$SLURM_ARRAY_TASK_ID
+
+# Create output directory before copying
+mkdir -p $OUTPUT_DIR
+
+cp configs/config_$SLURM_ARRAY_TASK_ID.toml $OUTPUT_DIR
+pixi run -e xrt --frozen python runner2.py configs/config_$SLURM_ARRAY_TASK_ID.toml $OUTPUT_DIR --cache-rate=200
