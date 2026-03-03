@@ -105,3 +105,10 @@ class AnalyzerCalibration:
     psi: tuple[float, ...]
     # roll of detector about direction of beam
     roll: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class GeneratorInvocation:
+    cycler: str
+    uuid: str
+    md5sum: str

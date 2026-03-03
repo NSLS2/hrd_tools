@@ -3,6 +3,8 @@ from collections import defaultdict
 from dataclasses import asdict, fields, replace
 from pathlib import Path
 from typing import Any, get_args, get_origin
+from hashlib import md5
+import uuid
 
 import numpy as np
 import tomli_w
@@ -16,17 +18,16 @@ from hrd_tools.config import (
     SimConfig,
     SimScanConfig,
     SourceConfig,
+    GeneratorInvocation,
 )
 
 
-def get_defaults(
-    min_tth = 20,
-    max_tth = 20.5):
+def get_defaults(min_tth=20, max_tth=20.5):
     return CompleteConfig(
         **{
             "source": SourceConfig(
                 E_incident=29_400,
-                pattern_path="/nsls2/data3/projects/next_iiia_hrd/sim_input/11bmb_7871_Y1.xye",
+                pattern_path="/home/tcaswell/scratch/2026/02/28/11bmb_7871_Y1.xye",
                 dx=1,
                 dz=1,
                 dy=1,
@@ -45,7 +46,9 @@ def get_defaults(
             "sim": SimConfig(nrays=500_000),
             "detector": DetectorConfig(
                 # default to mediapix3
-                pitch=0.055, transverse_size=256, height=10
+                pitch=0.055,
+                transverse_size=256,
+                height=10,
             ),
             "analyzer": AnalyzerConfig(
                 R=950,
@@ -135,13 +138,23 @@ def main():
         "Flags with multiple values are combined via addition (Cartesian product), while flags "
         "with a single value are incorporated via multiplication (broadcasting the constant)."
     )
+    # Add optional subdirectory flag
+    parser.add_argument(
+        "--subdir",
+        type=str,
+        default=None,
+        help="Optional subdirectory name under 'configs/' to nest the generated config files.",
+    )
     # Dynamically add a flag for each allowed key.
     for key in sorted(allowed_keys):
         conv = type_map[key]
+        # Special case: make short_description required at argparse level
+        is_required = (key == "short_description")
         parser.add_argument(
             f"--{key}",
             type=lambda s, conv=conv: list_type(s, conv),
             help=f"Comma-separated list of values for '{key}' (converted to {conv.__name__}).",
+            required=is_required,
         )
 
     args = parser.parse_args()
@@ -161,8 +174,8 @@ def main():
     if not variable_cyclers and not constant_cyclers:
         parser.error("At least one configuration flag must be provided.")
 
-    # Combine variable cyclers using addition (Cartesian product).
-    combined = None
+    # Combine variable cyclers using addition (Cartesian sum).
+    combined: Cycler | None = None
     if variable_cyclers:
         combined = variable_cyclers[0]
         for c in variable_cyclers[1:]:
@@ -174,15 +187,27 @@ def main():
             combined = c
         else:
             combined = combined * c
-
+    assert (
+        combined is not None
+    )  # Should never be None here due to earlier check, helps type checker.
     print("Generated cycler object:")
     print(combined)
 
     configs = convert_cycler(combined)
     config_path = Path("configs")
-    config_path.mkdir(exist_ok=True)
+    if args.subdir:
+        config_path = config_path / args.subdir
+    config_path.mkdir(parents=True, exist_ok=True)
     for f in config_path.glob("config_*.toml"):
         f.unlink()
+
+    gen_md = GeneratorInvocation(
+        **{
+            "cycler": repr(combined),
+            "uuid": str(uuid.uuid4()),
+            "md5sum": md5(repr(combined).encode()).hexdigest(),
+        }
+    )
     for j, config in enumerate(configs):
         print(
             ", ".join(
@@ -192,7 +217,7 @@ def main():
         )
 
         with open(config_path / f"config_{j}.toml", "wb") as fout:
-            tomli_w.dump(asdict(config), fout)
+            tomli_w.dump({**asdict(config), "generator": asdict(gen_md)}, fout)
 
 
 if __name__ == "__main__":

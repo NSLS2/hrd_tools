@@ -15,6 +15,7 @@ from hrd_tools.config import (
     SimConfig,
     SimScanConfig,
     SourceConfig,
+    GeneratorInvocation,
 )
 from hrd_tools.xrt.endstation import Endstation
 
@@ -88,7 +89,7 @@ def scan_to_file(
                     writer.send(sparse.concat(result_cache, axis=1))
 
 
-def dump_coro(output_dir, cache_rate, *, tlg="sim"):
+def dump_coro(output_dir, cache_rate, invocation, *, tlg="sim"):
     bl, tths, monitor, scan_config = yield cache_rate
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -113,8 +114,10 @@ def dump_coro(output_dir, cache_rate, *, tlg="sim"):
                     for fld in fields(bl)
                     if is_dataclass(fld.type)
                 },
+                "generator": asdict(invocation),
             },
             fout,
+            indent=2,
         )
 
     chunk_number = count()
@@ -175,12 +178,14 @@ if __name__ == "__main__":
         inp = tomllib.load(fin)
 
     configs = {k: cls(**inp[k]) for k, cls in class_map.items()}
+    invocation = GeneratorInvocation(**inp["generator"])
+
     fin = Path(configs["source"].pattern_path).resolve()
     if not fin.exists():
         msg = "pattern source does not exist"
         raise ValueError(msg)
 
     bl = Endstation.from_configs(**configs)
-    writer = dump_coro(args.output_dir, args.cache_rate)
+    writer = dump_coro(args.output_dir, args.cache_rate, invocation)
     scan_config = SimScanConfig(**inp["scan"])
     scan_to_file(bl, scan_config, writer=writer)
