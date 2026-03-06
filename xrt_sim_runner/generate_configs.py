@@ -10,6 +10,17 @@ import numpy as np
 import tomli_w
 from cycler import Cycler, cycler
 
+
+def _to_toml_serializable(obj: Any) -> Any:
+    """Recursively convert non-TOML-serializable types (e.g. Path) to strings."""
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {k: _to_toml_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_toml_serializable(v) for v in obj]
+    return obj
+
 from hrd_tools.config import (
     AnalyzerCalibration,
     AnalyzerConfig,
@@ -315,7 +326,7 @@ def main():
         )
 
         with open(config_path / f"config_{j}.toml", "wb") as fout:
-            tomli_w.dump({**asdict(config), "generator": asdict(gen_md)}, fout)
+            tomli_w.dump(_to_toml_serializable({**asdict(config), "generator": asdict(gen_md)}), fout)
 
     subdir = args.subdir or ""
     print(
