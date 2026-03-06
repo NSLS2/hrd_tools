@@ -172,6 +172,9 @@ class Endstation:
         ):
             cry_tth = arm_tth + j * offset
             # accept xrt coordinates
+            # x: inboard/outboard
+            # y: upstream/downstream
+            # z: up/down
             cry_y = config.R * np.cos(cry_tth)
             cry_z = config.R * np.sin(cry_tth)
             pitch = -cry_tth + theta_b
