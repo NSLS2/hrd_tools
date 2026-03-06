@@ -103,7 +103,7 @@ class AnalyzerCalibration:
     detector_centers: tuple[float, ...]
     # offsets from "0" on arm of each crystal in deg
     psi: tuple[float, ...]
-    # roll of detector about direction of beam
+    # roll of detector about direction of beam in deg
     roll: tuple[float, ...]
 
 
