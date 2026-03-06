@@ -317,6 +317,12 @@ def main():
         with open(config_path / f"config_{j}.toml", "wb") as fout:
             tomli_w.dump({**asdict(config), "generator": asdict(gen_md)}, fout)
 
+    subdir = args.subdir or ""
+    print(
+        f"\nTo launch:\n"
+        f"  sbatch --export=ALL,CONFIG_SUBDIR={subdir} --array=0-{len(configs) - 1} batch.job"
+    )
+
 
 if __name__ == "__main__":
     main()

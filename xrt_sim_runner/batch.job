@@ -12,6 +12,9 @@
 
 mkdir -p output
 
+# CONFIG_SUBDIR must be set at launch time via --export, e.g.:
+#   sbatch --export=ALL,CONFIG_SUBDIR=chi --array=0-19 batch.job
+CONFIG_SUBDIR=${CONFIG_SUBDIR:?CONFIG_SUBDIR must be set}
 
 RUN_DATE=$(date '+%Y%m%d')
 OUTPUT_DIR=/nsls2/data3/projects/next_iiia_hrd/xrt_output/${RUN_DATE}/${SLURM_ARRAY_JOB_ID}/$SLURM_ARRAY_TASK_ID
@@ -19,5 +22,5 @@ OUTPUT_DIR=/nsls2/data3/projects/next_iiia_hrd/xrt_output/${RUN_DATE}/${SLURM_AR
 # Create output directory before copying
 mkdir -p $OUTPUT_DIR
 
-cp configs/config_$SLURM_ARRAY_TASK_ID.toml $OUTPUT_DIR
-pixi run -e xrt --frozen python runner2.py configs/config_$SLURM_ARRAY_TASK_ID.toml $OUTPUT_DIR --cache-rate=200
+cp configs/${CONFIG_SUBDIR}/config_$SLURM_ARRAY_TASK_ID.toml $OUTPUT_DIR
+pixi run -e xrt --frozen python runner2.py configs/${CONFIG_SUBDIR}/config_$SLURM_ARRAY_TASK_ID.toml $OUTPUT_DIR --cache-rate=200
