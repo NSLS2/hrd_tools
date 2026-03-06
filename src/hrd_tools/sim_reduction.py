@@ -212,7 +212,7 @@ def reduce_raw(
         psi=calibration.psi,
         # mis-orientation of the analyzer along x (°)
         # TODO pull from calibration structure
-        rollx=[0.0] * analyzer.N,
+        rollx=[calibration.roll] * analyzer.N,
         # TODO pull from calibration structure
         # mis-orientation of the analyzer along y (°)
         rolly=[0.0] * analyzer.N,
