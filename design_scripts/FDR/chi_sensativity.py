@@ -28,28 +28,30 @@ props = CrystalProperties.create(E=40)
 
 # Configure analyzer with realistic parameters
 cfg = AnalyzerConfig(
-    910,  # R: sample to crystal distance (mm)
+    950,  # R: sample to crystal distance (mm)
     120,  # Rd: crystal to detector distance (mm)
     props.bragg_angle,
     2 * props.bragg_angle,
+    # looks weird, but is consistent
+    # detector_roll=2,
     detector_roll=0,
 )
 
 z = 15
 
 
-fig, (ax1, ax2) = plt.subplots(1, 2, layout="constrained", sharey=True)
+fig, (ax1, ax2) = plt.subplots(1, 2, layout="constrained", sharey=True, figsize=(5, 4))
 
 
 def one_z(z, ax):
     arm_angle = np.linspace(2, 88)
     baseline, _ = tth_from_z(z, arm_angle, cfg)
-    for chi in [0.0001, 0.001, 0.01]:
+    for chi in [0.0001, 0.005, 0.01]:
         corrected_tths, _ = tth_from_z(
             z, arm_angle, dataclasses.replace(cfg, crystal_roll=chi)
         )
         (ln,) = ax.plot(
-            arm_angle, (baseline - corrected_tths) * 1000, label=rf"$\chi$={chi}"
+            arm_angle, (baseline - corrected_tths) * 1000, label=rf"$\chi$={chi*1000} mdeg"
         )
         corrected_tths, _ = tth_from_z(
             -z, arm_angle, dataclasses.replace(cfg, crystal_roll=chi)
@@ -59,7 +61,7 @@ def one_z(z, ax):
     ax.axhline(1e-1, color=".5", ls="--")
     ax.axhline(-1e-1, color=".5", ls="--")
 
-    ax.legend(loc="best")
+    # ax.legend(loc="best")
     ax.set_title(rf"$z_d$={z}mm")
     ax.set_xlabel(r"arm $2\Theta$ (deg)")
 
@@ -67,18 +69,19 @@ def one_z(z, ax):
 def one_angle(arm_angle, ax):
     z = np.linspace(-20, 20, 256)
     baseline, _ = tth_from_z(z, arm_angle, cfg)
-    for chi in [0.0001, 0.001, 0.01]:
+    for chi in [0.0001, 0.005, 0.01]:
         corrected_tths, _ = tth_from_z(
             z, arm_angle, dataclasses.replace(cfg, crystal_roll=chi)
         )
-        ax.plot(z, (baseline - corrected_tths) * 1000, label=rf"$\chi$={chi}")
+        ax.plot(z, (baseline - corrected_tths) * 1000, label=rf"$\chi$={chi*1000} mdeg"
+                )
 
     ax.axhline(1e-1, color=".5", ls="--")
     ax.axhline(-1e-1, color=".5", ls="--")
 
     ax.legend()
     ax.set_title(rf"$2\Theta$={arm_angle}deg")
-    ax.set_xlabel(r"arm $2\Theta$ (deg)")
+    ax.set_xlabel(r"$z_d$ (mm)")
 
 
 ax1.set_ylabel(r"scatter $\Delta 2\theta$ (mdeg)")
@@ -86,8 +89,11 @@ ax1.set_ylabel(r"scatter $\Delta 2\theta$ (mdeg)")
 one_z(z, ax2)
 one_angle(45, ax1)
 
-
 plt.show()
+
+# %%
+
+fig.savefig(os.path.expanduser('~/windows_bridge/chi_stability.png'), dpi=400)
 
 # %%
 
