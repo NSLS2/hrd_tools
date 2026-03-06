@@ -22,8 +22,22 @@ from hrd_tools.config import (
 )
 
 
-def get_defaults(min_tth=20, max_tth=20.5):
-    return CompleteConfig(
+def _pad_source_range(config: CompleteConfig) -> CompleteConfig:
+    """Set source min/max_tth to be 2.5% wider than scan start/stop."""
+    scan_range = config.scan.stop - config.scan.start
+    padding = 0.025 * scan_range
+    return replace(
+        config,
+        source=replace(
+            config.source,
+            min_tth=config.scan.start - padding,
+            max_tth=config.scan.stop + padding,
+        ),
+    )
+
+
+def get_defaults(start=20, stop=20.5):
+    return _pad_source_range(CompleteConfig(
         **{
             "source": SourceConfig(
                 E_incident=29_400,
@@ -37,8 +51,9 @@ def get_defaults(min_tth=20, max_tth=20.5):
                 # default to unfocused
                 h_div=np.rad2deg(22e-6),
                 v_div=np.rad2deg(0.9e-6),
-                max_tth=max_tth,
-                min_tth=min_tth,
+                # will be overriden by _pad_source_range
+                max_tth=stop,
+                min_tth=start,
                 source_offset_x=0,
                 source_offset_y=0,
                 source_offset_z=0,
@@ -62,13 +77,15 @@ def get_defaults(min_tth=20, max_tth=20.5):
                 thickness=10,
                 roll=0,
             ),
-            "scan": SimScanConfig(start=min_tth, stop=max_tth, delta=1e-4),
+            "scan": SimScanConfig(start=start, stop=stop, delta=1e-4),
         }
-    )
+    ))
 
 
 def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
     defaults = get_defaults()
+    source_tth_keys = {"source.min_tth", "source.max_tth"}
+    user_set_source_tth = bool(source_tth_keys & set(cycle.keys))
     out = []
     for entry in cycle:
         nested: dict[str, dict[str, Any]] = defaultdict(dict)
@@ -76,12 +93,13 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
             outer, _, inner = k.partition(".")
             nested[outer][inner] = v
 
-        out.append(
-            replace(
-                defaults,
-                **{k: replace(getattr(defaults, k), **v) for k, v in nested.items()},
-            )
+        config = replace(
+            defaults,
+            **{k: replace(getattr(defaults, k), **v) for k, v in nested.items()},
         )
+        if not user_set_source_tth:
+            config = _pad_source_range(config)
+        out.append(config)
     return out
 
 
