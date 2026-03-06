@@ -22,6 +22,27 @@ from hrd_tools.config import (
 )
 
 
+def effective_half_phi(tth: float, d: float, detector_width: float) -> float:
+    """Half-phi coverage of a detector on the Debye-Scherrer cone.
+
+    Parameters
+    ----------
+    tth : float
+        Two-theta angle in radians.
+    d : float
+        Sample-to-detector distance (any consistent unit with *detector_width*).
+    detector_width : float
+        Full transverse width of the detector (same unit as *d*).
+
+    Returns
+    -------
+    float
+        Half-angle in radians of the arc subtended by the detector.
+    """
+    R = d * np.abs(np.sin(tth))
+    return np.arctan2(detector_width / 2, R)
+
+
 def _pad_source_range(config: CompleteConfig) -> CompleteConfig:
     """Set source min/max_tth to be 2.5% wider than scan start/stop."""
     scan_range = config.scan.stop - config.scan.start
@@ -36,8 +57,20 @@ def _pad_source_range(config: CompleteConfig) -> CompleteConfig:
     )
 
 
+def _set_delta_phi(config: CompleteConfig) -> CompleteConfig:
+    """Set source delta_phi to just cover the detector at the scan start angle."""
+    detector_width = config.detector.pitch * config.detector.transverse_size  # mm
+    d = config.analyzer.R  # mm
+    tth_rad = np.deg2rad(config.scan.start)
+    half_phi = effective_half_phi(tth_rad, d, detector_width)
+    return replace(
+        config,
+        source=replace(config.source, delta_phi=2*np.rad2deg(half_phi)),
+    )
+
+
 def get_defaults(start=20, stop=20.5):
-    return _pad_source_range(CompleteConfig(
+    config = CompleteConfig(
         **{
             "source": SourceConfig(
                 E_incident=29_400,
@@ -45,7 +78,7 @@ def get_defaults(start=20, stop=20.5):
                 dx=1,
                 dz=1,
                 dy=1,
-                # TODO set this based on detector + R + Rd + min_tth
+                # will be overridden by _set_delta_phi
                 delta_phi=3,
                 E_hwhm=1.4e-4,
                 # default to unfocused
@@ -79,13 +112,17 @@ def get_defaults(start=20, stop=20.5):
             ),
             "scan": SimScanConfig(start=start, stop=stop, delta=1e-4),
         }
-    ))
+    )
+    config = _pad_source_range(config)
+    config = _set_delta_phi(config)
+    return config
 
 
 def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
     defaults = get_defaults()
-    source_tth_keys = {"source.min_tth", "source.max_tth"}
-    user_set_source_tth = bool(source_tth_keys & set(cycle.keys))
+    cycle_keys = set(cycle.keys)
+    user_set_source_tth = bool({"source.min_tth", "source.max_tth"} & cycle_keys)
+    user_set_delta_phi = "source.delta_phi" in cycle_keys
     out = []
     for entry in cycle:
         nested: dict[str, dict[str, Any]] = defaultdict(dict)
@@ -99,6 +136,8 @@ def convert_cycler(cycle: Cycler) -> list[CompleteConfig]:
         )
         if not user_set_source_tth:
             config = _pad_source_range(config)
+        if not user_set_delta_phi:
+            config = _set_delta_phi(config)
         out.append(config)
     return out
 
