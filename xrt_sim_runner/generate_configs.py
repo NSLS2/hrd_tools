@@ -180,9 +180,50 @@ for cfg_name_field in fields(CompleteConfig):
         full_name_map[field.name] = f"{cfg_name}.{field.name}"
 
 
-# Utility: convert a comma-separated string to a list of values using conv.
+# Utility: convert a string to a list of values using conv.
+#
+# Supported formats (for numeric types):
+#   start:stop:step   → np.arange(start, stop, step)
+#   (start,stop,num)  → np.linspace(start, stop, int(num))
+#   val1,val2,val3    → [conv(v) for v in vals]
 def list_type(value_str: str, conv):
-    items = [item.strip() for item in value_str.split(",") if item.strip()]
+    s = value_str.strip().strip("\"'")
+    is_numeric = conv in (float, int)
+
+    # slice syntax: start:stop:step → np.arange
+    if is_numeric and ":" in s:
+        parts = s.split(":")
+        if len(parts) != 3:
+            raise argparse.ArgumentTypeError(
+                f"Slice syntax requires exactly 3 parts start:stop:step, got {s!r}"
+            )
+        try:
+            start, stop, step = (float(p) for p in parts)
+        except ValueError as e:
+            raise argparse.ArgumentTypeError(
+                f"Could not parse slice values: {e}"
+            ) from e
+        return [conv(v) for v in np.arange(start, stop, step)]
+
+    # linspace syntax: (start,stop,num) → np.linspace
+    if is_numeric and s.startswith("(") and s.endswith(")"):
+        inner = s[1:-1]
+        parts = [p.strip() for p in inner.split(",")]
+        if len(parts) != 3:
+            raise argparse.ArgumentTypeError(
+                f"Linspace syntax requires exactly 3 parts (start,stop,num), got {s!r}"
+            )
+        try:
+            start, stop = float(parts[0]), float(parts[1])
+            num = int(parts[2])
+        except ValueError as e:
+            raise argparse.ArgumentTypeError(
+                f"Could not parse linspace values: {e}"
+            ) from e
+        return [conv(v) for v in np.linspace(start, stop, num)]
+
+    # default: comma-separated list
+    items = [item.strip() for item in s.split(",") if item.strip()]
     try:
         return [conv(item) for item in items]
     except Exception as e:
