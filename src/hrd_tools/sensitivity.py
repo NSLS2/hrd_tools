@@ -76,7 +76,7 @@ PARAM_METADATA: dict[str, dict] = {
     },
     "detector_yaw": {
         "latex": r"$\psi_d$",
-        "unicode": "ψᵈ",
+        "unicode": "ψ_d",
         "units": "deg",
         "default_deltas": [0.0001, 0.005, 0.01],
         "bracket": [0, 0.1],
@@ -84,7 +84,7 @@ PARAM_METADATA: dict[str, dict] = {
     },
     "detector_roll": {
         "latex": r"$\phi_d$",
-        "unicode": "φᵈ",
+        "unicode": "φ_d",
         "units": "deg",
         "default_deltas": [0.0001, 0.005, 0.01],
         "bracket": [0, 0.1],
