@@ -20,6 +20,7 @@ shell = { features = ["shell"], no-default-feature = true }
 lint = { features = ['lint'], no-default-feature = true }
 tiled = { features = ['tiled'] }
 bluesky = ["bluesky"]
+test = { features = ["xrt", "reduction", "test"], solve-group = "default" }
 
 [tasks]
 
@@ -111,3 +112,10 @@ h5py = ">=3.16.0,<4"
 [feature.tiled.tasks]
 tiled_serve = { cmd = "tiled serve config config.yml --public", cwd = "tiled", env = { TILED_API_KEY = 'secret' } }
 tiled_register = { cmd = "python register_helper.py /nsls2/data3/projects/next_iiia_hrd/xrt_output/", cwd = 'tiled', env = { TILED_API_KEY = 'secret' } }
+
+[feature.test.dependencies]
+pytest = ">=8.0,<9"
+pytest-xdist = ">=3.6,<4"
+
+[feature.test.tasks]
+test = "pytest tests -n auto"
