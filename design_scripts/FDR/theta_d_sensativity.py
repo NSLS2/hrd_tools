@@ -7,6 +7,18 @@
 # To also save the figure:
 #   pixi run -e xrt python -m hrd_tools.sensitivity -p theta_d --show -o theta_d_stability.png
 
+
+import _fdr_params
 from hrd_tools.sensitivity import main
 
-main(["-p", "theta_d", "--show"])
+_args = _fdr_params.parse_args(__doc__)
+
+forwarded = ["-p", "theta_d"]
+if _args.show:
+    forwarded.append("--show")
+forwarded.extend(["-o", str(_args.outdir / "theta_d_stability.png")])
+if _args.energy_keV is not None:
+    forwarded.extend(["-E", str(_args.energy_keV)])
+
+_args.outdir.mkdir(parents=True, exist_ok=True)
+main(forwarded)

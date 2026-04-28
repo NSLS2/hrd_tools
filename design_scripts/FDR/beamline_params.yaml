@@ -1,0 +1,79 @@
+# Blessed FDR parameters for the NSLS-II HRD beamline.
+#
+# Field names under `source`, `sim`, `detector`, `analyzer`, `scan` mirror
+# the dataclasses in `hrd_tools.config` and round-trip through
+# `hrd_tools.file_io.complete_config_{to,from}_yaml`.
+#
+# Auxiliary blocks (`layout`, `crystal_reference`, `beam`, `real_data`) are
+# not part of CompleteConfig; they are read directly by the FDR helper
+# `_fdr_params.py`.
+#
+# Units are noted in inline comments on every scalar.
+
+source:                            # hrd_tools.config.SourceConfig
+  E_incident: 40000.0              # eV    -- canonical FDR design energy (40 keV)
+  pattern_path: null               #        -- path to powder pattern (xrt sims only)
+  dx: 0.5                          # mm    -- source size, transverse to beam
+  dz: 0.5                          # mm    -- source size, vertical
+  dy: 0.0                          # mm    -- source depth along beam
+  delta_phi: 1.0                   # deg   -- azimuthal extent simulated around vertical
+  E_hwhm: 0.0                      # eV    -- energy half-width at half-max
+  v_div: 0.0                       # deg   -- vertical divergence (set 0 for sims; see beam.v_div_mrad for design)
+  h_div: 0.0                       # deg   -- horizontal divergence
+  min_tth: 0.0                     # deg
+  max_tth: 180.0                   # deg
+  source_offset_x: 0.0             # mm
+  source_offset_y: 0.0             # mm
+  source_offset_z: 0.0             # mm
+
+sim:                               # hrd_tools.config.SimConfig
+  nrays: 1000000                   # count -- ray budget per scan position
+
+detector:                          # baseline ASIC; geometry pulled from hrd_tools.detector_stats
+  name: medipix3                   #        -- key into hrd_tools.detector_stats.detectors
+
+analyzer:                          # hrd_tools.config.AnalyzerConfig
+  R: 910.0                         # mm    -- sample to (central) crystal
+  Rd: 120.0                        # mm    -- crystal to detector
+  cry_offset: 2.0                  # deg   -- angular spacing between adjacent crystals
+  cry_width: 30.0                  # mm    -- transverse to beam
+  cry_depth: 70.0                  # mm    -- along beam
+  N: 12                            # count -- crystals per bank
+  incident_angle: null             # deg   -- null => derive from source.E_incident & Si(111)
+  thickness: 10.0                  # mm    -- canonical analyzer crystal thickness
+  roll: 0.0                        # deg   -- detector-bank roll about the beam
+
+scan:                              # hrd_tools.config.SimScanConfig
+  start: 0.0                       # deg
+  stop: 8.0                        # deg
+  delta: 1.0e-4                    # deg
+  short_description: "FDR canonical scan"
+
+# --- Auxiliary blocks (not part of CompleteConfig) -------------------------
+
+layout:                            # detector_layout.py / scan_coverage.py
+  banks: 4                         # count
+  crystals_per_bank: 12            # count
+  pitch_deg: 2.0                   # deg   -- spacing between crystals within a bank
+  primary_offset_deg: 29.0         # deg   -- (crystals_per_bank-1)*pitch_deg + 7
+  scan_range_deg: 8.0              # deg   -- nominal arm motion per scan
+  frame_dt_s: 1.0e-4               # s     -- minimum detector frame time
+  default_target_time_s: 30.0      # s     -- default scan duration
+
+crystal_reference:                 # canonical Si crystal used for Bragg/Darwin reference
+  material: Si
+  hkl: [1, 1, 1]
+  d_spacing_A: 3.1355              # Angstrom
+  thickness_mm: 10.0               # mm    -- canonical (matches analyzer.thickness)
+
+beam:                              # diff_roll.py and similar divergence studies
+  v_div_mrad: 0.9                  # mrad  -- design vertical divergence at sample
+  h_div_mrad: 18.0                 # mrad  -- design horizontal divergence at sample
+  max_div_perc: 0.01               # frac  -- max fractional divergence growth allowed
+
+real_data:                         # live_data_varidation.py / real_data.py
+  root: /mnt/store/bnl/cache/hrd/beamtime_cleanup/reorg/raw/v3/   # path
+  dataset: 11bmb_2387_mda_defROI                                  # name
+  version: 3                        # int   -- dataset reduction version
+  rois_file: rois_11bm.yaml        #        -- relative to this YAML
+  save_base: /home/tcaswell/windows_bridge/                       # path -- default --outdir

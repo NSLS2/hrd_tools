@@ -22,16 +22,25 @@
 # ## Import Libraries
 
 # %%
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 from dataclasses import dataclass
 
-from hrd_tools.detector_stats import Detector, detectors
-from multihead.corrections import tth_from_z
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
 from multihead.config import AnalyzerConfig
+from multihead.corrections import tth_from_z
 
-plt.switch_backend('qtagg')
+import _fdr_params
+from hrd_tools.detector_stats import Detector, detectors
+from hrd_tools.xrt import CrystalProperties
+
+_args = _fdr_params.parse_args(__doc__)
+_save = _fdr_params.figure_saver(_args)
+_blessed = _fdr_params.complete_config()
+
+_e_keV = _args.energy_keV if _args.energy_keV is not None else _blessed.source.E_incident / 1000.0
+_props = CrystalProperties.create(E=_e_keV)
+
 # %% [markdown]
 # ## Analysis Function
 # 
@@ -43,6 +52,7 @@ plt.switch_backend('qtagg')
 @dataclass
 class DetectorGeometryResult:
     """Results from detector geometry analysis."""
+
     twotheta: np.ndarray
     max_phi: np.ndarray
     error_threshold_phi: np.ndarray
@@ -55,7 +65,7 @@ def analyze_detector_geometry(
     total_distance: float,
     detector: Detector,
     *,
-    crystal_to_detector: float = 120.0,
+    crystal_to_detector: float = _blessed.analyzer.Rd,
     twotheta_range: tuple[float, float] = (0, 90),
     n_steps: int = 512,
     error_threshold: float = 1e-4,
@@ -86,52 +96,40 @@ def analyze_detector_geometry(
     # Create configuration object for tth_from_z
     # R is sample to analyzer (crystal), Rd is analyzer to detector
     config = AnalyzerConfig(
-        total_distance - crystal_to_detector,  # R: sample to analyzer
-        crystal_to_detector,                   # Rd: analyzer to detector
-        np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),  # theta_B (Bragg angle)
-        2 * np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),  # tth_B (2*Bragg angle)
-        detector_roll=0,
+        total_distance - crystal_to_detector,    # R: sample to analyzer
+        crystal_to_detector,                     # Rd: analyzer to detector
+        _props.bragg_angle,                      # theta_i (deg)
+        2 * _props.bragg_angle,                  # theta_d (deg)
+        detector_roll=_blessed.analyzer.roll,
     )
-    
-    # Generate 2theta angles
+
     twotheta_vals = np.linspace(twotheta_range[0], twotheta_range[1], n_steps)
-    
+
     # Convert pixel pitch from µm to mm
     pixel_size_mm = detector.pixel_pitch / 1000.0
-    
-    # Create array of pixel positions from center to edge
+
     n_pixels_half = detector.sensor_shape[0] // 2
     pixel_positions = np.arange(0, n_pixels_half + 1) * pixel_size_mm
-    
-    # Vectorized calculation: tth_from_z can handle both z and arm_tth arrays
-    # Shape: (n_tth, n_positions)
+
     (tth_vals), (phi_vals) = tth_from_z(
         pixel_positions.reshape(1, -1),
         twotheta_vals.reshape(-1, 1),
         config,
     )
-    
-    # Maximum phi is at the detector edge (last pixel) for each 2theta
+
     max_phi = np.abs(phi_vals[:, -1])
-    
-    # Calculate uncertainty as the 2theta difference across each pixel
-    # Shape: (n_tth, n_positions-1)
+
     pixel_uncertainties = np.abs(np.diff(tth_vals, axis=1))
-    
-    # Find where pixel uncertainty crosses threshold for each 2theta
-    # Use argmax to find first True value (crossing threshold)
-    # argmax returns 0 if all False, so check if any values exceed threshold
+
     crosses_threshold = pixel_uncertainties > error_threshold
     first_crossing = np.argmax(crosses_threshold, axis=1)
-    
-    # If no crossing (all False), argmax returns 0, so use max_phi
-    # Otherwise use phi at first crossing position
+
     error_phi = np.where(
         np.any(crosses_threshold, axis=1),
         np.abs(phi_vals[np.arange(n_steps), first_crossing]),
-        max_phi
+        max_phi,
     )
-    
+
     return DetectorGeometryResult(
         twotheta=twotheta_vals,
         max_phi=max_phi,
@@ -140,24 +138,24 @@ def analyze_detector_geometry(
         detector_name=detector.name,
     )
 
+
 # %% [markdown]
 # ## Parameter Sweep
 # 
 # Sweep through different total distances and analyze the effect on phi coverage.
 
 # %%
-# Select detector
-detector = detectors["medipix4"]
+# Use the blessed baseline detector
+detector = _fdr_params.detector()
 
-# Distance sweep parameters
-distances = np.linspace(1000, 1500, 9)  # mm
+# Distance sweep parameters (mm)
+distances = np.linspace(1000, 1500, 9)
 results_list = []
 
 for dist in distances:
     result = analyze_detector_geometry(
         dist,
         detector,
-        crystal_to_detector=120.0,
         twotheta_range=(1, 90),
         n_steps=512,
         error_threshold=1e-4,
@@ -172,81 +170,71 @@ for dist in distances:
 # %%
 fig, axes = plt.subplots(1, 2, figsize=(14, 5), layout="constrained")
 
-# Plot 1: Maximum Phi vs 2theta for different distances
 ax1 = axes[0]
 for result in results_list:
-    ax1.plot(result.twotheta, result.max_phi, 
-             label=f"{result.total_distance:.0f} mm")
+    ax1.plot(result.twotheta, result.max_phi, label=f"{result.total_distance:.0f} mm")
 
-ax1.set_xlabel('Arm 2θ (degrees)', fontsize=12)
-ax1.set_ylabel(r'Maximum $\phi$ (degrees)', fontsize=12)
-ax1.set_title(r'Maximum $\phi$ Coverage' + f'\n{detector.name}', fontsize=13)
-ax1.legend(title='Total Distance', fontsize=9)
+ax1.set_xlabel("Arm 2θ (degrees)", fontsize=12)
+ax1.set_ylabel(r"Maximum $\phi$ (degrees)", fontsize=12)
+ax1.set_title(r"Maximum $\phi$ Coverage" + f"\n{detector.name}", fontsize=13)
+ax1.legend(title="Total Distance", fontsize=9)
 ax1.grid(True, alpha=0.3)
 
-# Plot 2: Error-limited Phi vs 2theta
 ax2 = axes[1]
 for result in results_list:
-    ax2.plot(result.twotheta, result.error_threshold_phi, 
-             label=f"{result.total_distance:.0f} mm")
+    ax2.plot(result.twotheta, result.error_threshold_phi, label=f"{result.total_distance:.0f} mm")
 
-ax2.set_xlabel('Arm 2θ (degrees)', fontsize=12)
-ax2.set_ylabel(r'Error-Limited $\phi$ (degrees)', fontsize=12)
-ax2.set_title(r'$\phi$ at Error Threshold (1e-4)' + f'\n{detector.name}', fontsize=13)
-ax2.legend(title='Total Distance', fontsize=9)
+ax2.set_xlabel("Arm 2θ (degrees)", fontsize=12)
+ax2.set_ylabel(r"Error-Limited $\phi$ (degrees)", fontsize=12)
+ax2.set_title(r"$\phi$ at Error Threshold (1e-4)" + f"\n{detector.name}", fontsize=13)
+ax2.legend(title="Total Distance", fontsize=9)
 ax2.grid(True, alpha=0.3)
 
-plt.show()
+_save(fig, "detector_distance_phi_vs_tth.png")
 
 # %% [markdown]
 # ## Distance Effect Summary
-# 
-# Plot how the maximum phi varies with total distance at specific 2theta values.
 
 # %%
 fig, ax = plt.subplots(figsize=(10, 6), layout="constrained")
 
-# Extract specific 2theta values
-twotheta_targets = [30, 60, 90, 120]
-colors = mpl.colormaps['viridis'](np.linspace(0, 1, len(twotheta_targets)))
+twotheta_targets = [30, 60, 90, 120]           # deg
+colors = mpl.colormaps["viridis"](np.linspace(0, 1, len(twotheta_targets)))
 
 for twotheta_target, color in zip(twotheta_targets, colors):
     max_phi_at_target = []
     error_phi_at_target = []
-    
+
     for result in results_list:
-        # Find closest 2theta value
         idx = np.argmin(np.abs(result.twotheta - twotheta_target))
         max_phi_at_target.append(result.max_phi[idx])
         error_phi_at_target.append(result.error_threshold_phi[idx])
-    
-    ax.plot(distances, max_phi_at_target, 'o-', color=color, 
-            label=f'2θ = {twotheta_target}° (max)', linewidth=2)
-    ax.plot(distances, error_phi_at_target, 's--', color=color, 
-            label=f'2θ = {twotheta_target}° (error limit)', linewidth=1.5, alpha=0.7)
 
-ax.set_xlabel('Total Distance (mm)', fontsize=12)
-ax.set_ylabel(r'$\phi$ Coverage (degrees)', fontsize=12)
-ax.set_title(r'Effect of Total Distance on $\phi$ Coverage' + f'\n{detector.name}', fontsize=13)
+    ax.plot(distances, max_phi_at_target, "o-", color=color,
+            label=f"2θ = {twotheta_target}° (max)", linewidth=2)
+    ax.plot(distances, error_phi_at_target, "s--", color=color,
+            label=f"2θ = {twotheta_target}° (error limit)", linewidth=1.5, alpha=0.7)
+
+ax.set_xlabel("Total Distance (mm)", fontsize=12)
+ax.set_ylabel(r"$\phi$ Coverage (degrees)", fontsize=12)
+ax.set_title(r"Effect of Total Distance on $\phi$ Coverage" + f"\n{detector.name}",
+             fontsize=13)
 ax.legend(fontsize=9, ncol=2)
 ax.grid(True, alpha=0.3)
 
-plt.show()
+_save(fig, "detector_distance_effect.png")
 
 # %% [markdown]
 # ## Compare Detectors
-# 
-# Compare different detector types at a fixed distance.
 
 # %%
-fixed_distance = 1000.0  # mm
+fixed_distance = 1000.0                        # mm
 detector_comparison = {}
 
 for det_name, det in detectors.items():
     result = analyze_detector_geometry(
         fixed_distance,
         det,
-        crystal_to_detector=120.0,
         twotheta_range=(1, 90),
         n_steps=512,
         error_threshold=1e-4,
@@ -256,32 +244,27 @@ for det_name, det in detectors.items():
 # %%
 fig, axes = plt.subplots(1, 2, figsize=(14, 5), layout="constrained")
 
-# Plot detector comparison
 ax1 = axes[0]
 for det_name, result in detector_comparison.items():
-    ax1.plot(result.twotheta, result.max_phi, 
-             label=result.detector_name, linewidth=2)
+    ax1.plot(result.twotheta, result.max_phi, label=result.detector_name, linewidth=2)
 
-ax1.set_xlabel('Arm 2θ (degrees)', fontsize=12)
-ax1.set_ylabel(r'Maximum $\phi$ (degrees)', fontsize=12)
-ax1.set_title(r'Detector Comparison: Maximum $\phi$' + f'\nTotal Distance = {fixed_distance} mm', 
+ax1.set_xlabel("Arm 2θ (degrees)", fontsize=12)
+ax1.set_ylabel(r"Maximum $\phi$ (degrees)", fontsize=12)
+ax1.set_title(r"Detector Comparison: Maximum $\phi$" + f"\nTotal Distance = {fixed_distance} mm",
               fontsize=13)
 ax1.legend(fontsize=9)
 ax1.grid(True, alpha=0.3)
 
-# Plot error-limited comparison
 ax2 = axes[1]
 for det_name, result in detector_comparison.items():
-    ax2.plot(result.twotheta, result.error_threshold_phi, 
-             label=result.detector_name, linewidth=2)
+    ax2.plot(result.twotheta, result.error_threshold_phi, label=result.detector_name, linewidth=2)
 
-ax2.set_xlabel('Arm 2θ (degrees)', fontsize=12)
-ax2.set_ylabel(r'Error-Limited $\phi$ (degrees)', fontsize=12)
-ax2.set_title(r'Detector Comparison: Error-Limited $\phi$' + f'\nTotal Distance = {fixed_distance} mm', 
+ax2.set_xlabel("Arm 2θ (degrees)", fontsize=12)
+ax2.set_ylabel(r"Error-Limited $\phi$ (degrees)", fontsize=12)
+ax2.set_title(r"Detector Comparison: Error-Limited $\phi$" + f"\nTotal Distance = {fixed_distance} mm",
               fontsize=13)
 ax2.legend(fontsize=9)
 ax2.grid(True, alpha=0.3)
 
-plt.show()
-
-# %%
+_save(fig, "detector_distance_comparison.png")
+_fdr_params.maybe_show(_args)

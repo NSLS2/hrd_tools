@@ -1,11 +1,16 @@
+"""Required crystal footprint (longitudinal & transverse) per energy/detector."""
+
 import numpy as np
 import xrt.backends.raycing.materials as rmats
-from multihead.config import AnalyzerConfig
 from multihead.corrections import tth_from_z
 
+import _fdr_params
 from hrd_tools.detector_stats import detectors
 
-crystal = rmats.CrystalSi(t=1)
+_args = _fdr_params.parse_args(__doc__)
+_blessed = _fdr_params.complete_config()
+
+crystal = rmats.CrystalSi(t=_fdr_params.crystal_reference()["thickness_mm"])
 
 
 def footprint(d: float, tth: float, E: float):
@@ -17,38 +22,26 @@ def footprint(d: float, tth: float, E: float):
 
 print("Z footprint")
 
-E = 40
-for max_z in [3, 5]:
+E = 40                                         # keV
+for max_z in [3, 5]:                            # mm
     print(
-        f"At {E}kEv with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
+        f"At {E}keV with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
     )
 
+for max_z in [3, 5]:
+    print(f"{E}keV\t{max_z:} mm \t {footprint(max_z, 90, E):.2f} mm")
 
+E = 30                                         # keV
 for max_z in [3, 5]:
     print(
-        f"{E}kEv\t{max_z:} mm \t {footprint(max_z, 90, E):.2f} mm"
+        f"At {E}keV with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
     )
-
-E = 30
-for max_z in [3, 5]:
-    print(
-        f"At {E}kEv with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
-    )
-
 
 for max_z in [3, 5]:
-    print(
-        f"{E}kEv\t{max_z:} mm \t {footprint(max_z, 90, E):.2f} mm"
-    )
+    print(f"{E}keV\t{max_z:} mm \t {footprint(max_z, 90, E):.2f} mm")
 
 
-cfg = AnalyzerConfig(
-    910,  # R: sample to crystal distance (mm)
-    120,  # Rd: crystal to detector distance (mm)
-    np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),  # theta_i: incident angle
-    2 * np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),  # theta_d: diffraction angle
-    detector_roll=0,
-)
+cfg = _fdr_params.analyzer_multihead()
 
 # in mm
 det_size = dict(
@@ -61,8 +54,8 @@ det_size = dict(
     )
 )
 
-arm_angles = np.array([45])
-z = np.array(list(det_size.values())) / 2
+arm_angles = np.array([45])                    # deg
+z = np.array(list(det_size.values())) / 2      # mm
 corrected_tths, corrected_phis = tth_from_z(
     z.reshape(1, -1), arm_angles.reshape(-1, 1), cfg
 )
@@ -83,7 +76,4 @@ for (det_name, det_width), cry_z in zip(
 for (det_name, det_width), cry_z in zip(
     det_size.items(), on_cry_size.squeeze(), strict=True
 ):
-    print(
-        f"{det_name: <8}\t{det_width:.2f} mm\t"
-        f"{cry_z:.2f} mm"
-    )
+    print(f"{det_name: <8}\t{det_width:.2f} mm\t{cry_z:.2f} mm")

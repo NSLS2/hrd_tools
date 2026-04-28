@@ -1,16 +1,25 @@
+"""Detector-spot shift δL vs incident-angle error δθ_i."""
+
 # %%
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import xrt.backends.raycing.materials as rmats
 
+import _fdr_params
+
+_args = _fdr_params.parse_args(__doc__)
+_save = _fdr_params.figure_saver(_args)
+_blessed = _fdr_params.complete_config()
+
 # %%
 
-mpl.rcParams['savefig.dpi'] = 300
+mpl.rcParams["savefig.dpi"] = _args.dpi
 
 # %%
-E = 40_000
-crystal = rmats.CrystalSi(t=1)
+E = (_args.energy_keV if _args.energy_keV is not None
+     else _blessed.source.E_incident / 1000.0) * 1000.0   # eV
+crystal = rmats.CrystalSi(t=_fdr_params.crystal_reference()["thickness_mm"])
 
 # in mdeg
 darwin_mdeg = 1000 * np.rad2deg(crystal.get_Darwin_width(E))
@@ -26,11 +35,12 @@ def delta_L(R, arm_tth, delta_theta):
 
 
 # %%
+R = _blessed.analyzer.R * 1e3                  # µm  (mm * 1e3)
+delta_theta = np.linspace(-0.001, 0.001, 512)  # deg
+
 cmap = mpl.colormaps["viridis"]
 fig, (ax, ax2) = plt.subplots(1, 2, layout="constrained", sharey=True)
-fig.suptitle(f"At {E / 1000}kEv and {R / 1e6}m")
-delta_theta = np.linspace(-0.001, 0.001, 512)
-R = 0.9 * 1e6
+fig.suptitle(f"At {E / 1000:g}keV and {R / 1e6:g}m")
 
 for arm_tth in [1.5, 5, 15, 25, 45, 90][::-1]:
     ax.plot(
@@ -44,7 +54,6 @@ ax.set_xlabel(r"$\delta \theta_i$ (μdeg)")
 ax.set_ylabel(r"$\delta L$ (μm)")
 ax.axhspan(-5, 5, color="k", alpha=0.1)
 ax.axhspan(-40, 40, color="k", alpha=0.1)
-# ax.axvspan(-darwin_mdeg / 2, darwin_mdeg / 2, color="k", alpha=0.1)
 ax.axvline(-1000 * darwin_mdeg / 2, color="k", alpha=0.5, zorder=1, ls="--")
 ax.axvline(1000 * darwin_mdeg / 2, color="k", alpha=0.5, zorder=1, ls="--")
 
@@ -67,6 +76,5 @@ ax2.axhspan(-5, 5, color="k", alpha=0.1)
 ax2.axhspan(-40, 40, color="k", alpha=0.1)
 ax2.legend()
 ax2.set_xlim(1.5, 90)
-plt.show()
-
-# %%
+_save(fig, "delta_L_angle.png")
+_fdr_params.maybe_show(_args)

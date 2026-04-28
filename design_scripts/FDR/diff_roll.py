@@ -2,19 +2,26 @@
 # # Maximum roll of diffractometer
 #
 # If the detector is off vertical relative to the electron beam orbit
-# we will mix the horizontal and vertical diveregences
-#
+# we will mix the horizontal and vertical divergences.
+
+"""Maximum diffractometer roll vs vertical-divergence budget."""
 
 # %%
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import root_scalar
 
+import _fdr_params
+
+_args = _fdr_params.parse_args(__doc__)
+_save = _fdr_params.figure_saver(_args)
+_beam = _fdr_params.beam()
+
 # %%
-v_div = 0.9
-h_div = 18.0
-# accept 1% increase in divergence
-max_div_perc = 0.01
+v_div = _beam["v_div_mrad"]               # mrad
+h_div = _beam["h_div_mrad"]               # mrad
+# accept N% increase in divergence
+max_div_perc = _beam["max_div_perc"]
 max_div = v_div * (1 + max_div_perc)
 
 
@@ -63,4 +70,5 @@ ax.annotate(
     va="top",
 )
 
-plt.show()
+_save(fig, "diff_roll.png")
+_fdr_params.maybe_show(_args)

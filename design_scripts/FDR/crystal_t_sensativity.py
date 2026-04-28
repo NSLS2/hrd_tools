@@ -1,15 +1,24 @@
+"""Si(111) Bragg-angle sensitivity to crystal temperature."""
+
 # %%
 import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 import numpy as np
 from scipy import optimize
 
+import _fdr_params
 from hrd_tools.xrt import CrystalProperties
 
-# %%
-room = 295.0  # K
-start, stop = room - 7, room + 7  #
+_args = _fdr_params.parse_args(__doc__)
+_save = _fdr_params.figure_saver(_args)
+_blessed = _fdr_params.complete_config()
 
-E = 40  # kEv
+# %%
+room = 295.0                                   # K
+start, stop = room - 7, room + 7               # K
+
+E = (_args.energy_keV if _args.energy_keV is not None
+     else _blessed.source.E_incident / 1000.0)  # keV
 steps = 128
 
 
@@ -83,4 +92,5 @@ for (frac, (l, h)), style in zip(
 ax.set_xlim(-6, 6)
 ax.set_xlabel(rf"$\Delta T$ from {room} (K)")
 ax.set_ylabel(r"$\Delta \theta_{bragg}$ (μdeg)")
-plt.show()
+_save(fig, "crystal_t_sensitivity.png")
+_fdr_params.maybe_show(_args)

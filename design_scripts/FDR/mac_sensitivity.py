@@ -1,17 +1,31 @@
-# Print the ±0.1 mdeg Δ2θ tolerance bounds for all AnalyzerConfig parameters.
-#
-# Run with:
-#   pixi run -e xrt python design_scripts/FDR/mac_sensitivity.py
+"""Print maximum AnalyzerConfig parameter deviations to keep Δ2θ ≤ 0.1 mdeg.
 
-from hrd_tools.sensitivity import PARAM_METADATA, create_default_config, find_parameter_bound
+Run with::
 
-MAX_DELTA_TTH_MDEG = 0.1
-Z_D = 15
-ARM_ANGLES = [5, 88]
+    pixi run -e xrt python design_scripts/FDR/mac_sensitivity.py
+"""
 
-config = create_default_config()
+import _fdr_params
+from hrd_tools.sensitivity import (
+    PARAM_METADATA,
+    create_default_config,
+    find_parameter_bound,
+)
 
-print(f"Maximum parameter deviations to keep Δ2θ ≤ {MAX_DELTA_TTH_MDEG} mdeg (z_d={Z_D}mm)\n")
+_args = _fdr_params.parse_args(__doc__)
+
+MAX_DELTA_TTH_MDEG = 0.1                       # mdeg
+Z_D = 15                                       # mm
+ARM_ANGLES = [5, 88]                           # deg
+
+# Use the canonical FDR energy (or CLI override) for the analyzer config.
+_blessed = _fdr_params.complete_config()
+_e_keV = _args.energy_keV if _args.energy_keV is not None else _blessed.source.E_incident / 1000.0
+config = create_default_config(_e_keV)
+
+print(
+    f"Maximum parameter deviations to keep Δ2θ ≤ {MAX_DELTA_TTH_MDEG} mdeg (z_d={Z_D}mm)\n"
+)
 
 for param_name, meta in PARAM_METADATA.items():
     symbol = meta["unicode"]

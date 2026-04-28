@@ -1,4 +1,4 @@
-# %% [maarkdown]
+# %% [markdown]
 # # Effective ɸ for detectors
 #
 # This file generates a plot showing the effective ɸ (of the DS cone)
@@ -6,19 +6,22 @@
 #
 # This is intended as a figure in HRD FDR
 #
-# in contrast to phi_coverage.py this uses the full correction rather than estimating
-# via simple geometry.  The effect is small with a perfectly aligned crystal, but grows
-# if chi is non-zero.  Not bothering to explore that here as the dominating factor is detector
-# size.
+# in contrast to phi_coverage.py this uses the full correction rather than
+# estimating via simple geometry.  The effect is small with a perfectly
+# aligned crystal, but grows if chi is non-zero.  Not bothering to explore
+# that here as the dominating factor is detector size.
 
 # %%
-
 import matplotlib.pyplot as plt
 import numpy as np
 from multihead.config import AnalyzerConfig
 from multihead.corrections import arm_from_z
 
+import _fdr_params
 from hrd_tools.detector_stats import detectors
+
+_args = _fdr_params.parse_args(__doc__)
+_save = _fdr_params.figure_saver(_args)
 
 
 # %%
@@ -29,14 +32,12 @@ def effoctive_solid_angle(tth, config, detector_width):
         np.array(tth).reshape(-1, 1),
         config,
     )
-    print(arm_tth, phi)
     return phi
 
 
 # %% [markdown]
 # ## Plot effective ɸ for various detectors
 #
-
 
 # Calculate detector widths from detector stats
 dets = {
@@ -51,15 +52,8 @@ style = {
 }
 
 # %%
-
-# 1.03m sample -> detector
-cfg = AnalyzerConfig(
-    910,
-    120,
-    np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
-    2 * np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
-    detector_roll=0,
-)
+# Pull blessed (R, Rd, theta_i, theta_d) from beamline_params.yaml.
+cfg = _fdr_params.analyzer_multihead(energy_keV=_args.energy_keV)
 
 theta = np.linspace(1, 90)
 
@@ -82,24 +76,27 @@ ax.set_xlim(0, 90)
 
 ax.set_title(f"$\\pm\\phi_{{max}}$ at {cfg.R + cfg.Rd:.2f} mm")
 
-plt.show()
-
+_save(fig, "phi_coverage_full.png")
 
 # %% [markdown]
-# This shows that the maximum ɸ coverage is effectively independent of the location
-# of the crystal.
+# This shows that the maximum ɸ coverage is effectively independent of the
+# location of the crystal.
+
 # %%
 # effect of moving crystal position on max phi
 # Figure 3
 theta = np.linspace(1, 90)
 
+# Total source-to-detector distance from blessed values.
+_a = _fdr_params.load()["analyzer"]
+_total = _a["R"] + _a["Rd"]
+
 cfgs = [
-    AnalyzerConfig(
-        middle,
-        1030 - middle,
-        np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
-        2 * np.rad2deg(np.arcsin(0.8 / (2 * 3.1355))),
+    _fdr_params.analyzer_multihead(
+        energy_keV=_args.energy_keV,
         crystal_roll=1 / 1000,
+        R=middle,
+        Rd=_total - middle,
     )
     for middle in [100, 250, 500, 900, 1000]
 ]
@@ -113,7 +110,7 @@ fig, (ax, ax2) = plt.subplots(
 ax.plot(
     theta,
     np.ptp(max_phi, axis=0),
-    label=f"10 mm detector (ptp)",
+    label="10 mm detector (ptp)",
     color="C0",
     lw=2,
 )
@@ -136,9 +133,8 @@ ax2.set_ylabel(r"$\pm\phi_{max}$ (deg)")
 ax.set_xlim(0, 90)
 
 fig.suptitle(
-    f"Peak-to-peak variation in $\\pm\\phi_{{max}}$ for crystal positions 100-1000 mm"
+    "Peak-to-peak variation in $\\pm\\phi_{max}$ for crystal positions 100-1000 mm"
 )
 
-plt.show()
-
-# %%
+_save(fig, "phi_coverage_crystal_position.png")
+_fdr_params.maybe_show(_args)

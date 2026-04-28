@@ -1,0 +1,57 @@
+# 11-BM (APS) per-detector ROIs used by real_data.py and live_data_varidation.py.
+# Loadable via multihead.config.DetectorROIs.from_yaml(<path>).
+#
+# Each entry's `rslc` / `cslc` are pixel index pairs [start, stop) on a
+# 256 x 256 detector frame.
+
+software: {}
+parameters: {}
+rois:
+- detector_number: 1
+  roi_bounds:
+    cslc: [0, 208]      # pixels
+    rslc: [120, 136]    # pixels
+- detector_number: 2
+  roi_bounds:
+    cslc: [25, 240]
+    rslc: [77, 94]
+- detector_number: 3
+  roi_bounds:
+    cslc: [11, 219]
+    rslc: [176, 194]
+- detector_number: 4
+  roi_bounds:
+    cslc: [25, 236]
+    rslc: [188, 204]
+- detector_number: 5
+  roi_bounds:
+    cslc: [12, 221]
+    rslc: [185, 202]
+- detector_number: 6
+  roi_bounds:
+    cslc: [30, 240]
+    rslc: [122, 139]
+- detector_number: 7
+  roi_bounds:
+    cslc: [15, 220]
+    rslc: [162, 179]
+- detector_number: 8
+  roi_bounds:
+    cslc: [30, 238]
+    rslc: [70, 87]
+- detector_number: 9
+  roi_bounds:
+    cslc: [13, 217]
+    rslc: [166, 183]
+- detector_number: 10
+  roi_bounds:
+    cslc: [32, 238]
+    rslc: [115, 132]
+- detector_number: 11
+  roi_bounds:
+    cslc: [0, 211]
+    rslc: [122, 139]
+- detector_number: 12
+  roi_bounds:
+    cslc: [36, 237]
+    rslc: [59, 78]
