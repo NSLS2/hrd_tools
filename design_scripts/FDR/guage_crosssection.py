@@ -110,7 +110,7 @@ def gague_corners(
 
 # %%
 # Figure 1
-fig, ax = plt.subplots(layout="constrained", figsize=(8, 4.5))
+fig, ax = plt.subplots(layout="constrained", figsize=(7.5, 3.5))
 x_vals = np.array([-5, 1000])                  # mm
 angles = [5, 45, 85]                           # deg
 colors = mpl.colormaps["tab10"](range(3))
@@ -154,7 +154,7 @@ ax.add_artist(sample)
 ax.add_artist(tube)
 ax.axhspan(-0.5, 0.5, color="gray", alpha=0.5, label="Incoming beam")
 ax.set_xlim(-5.0, 5.0)
-ax.set_ylim(-2.0, 2.0)
+ax.set_ylim(-1.5, 1.5)
 ax.set_aspect("equal")
 ax.legend(ncol=3, bbox_to_anchor=(0.0, 1.02, 1.0, 0.102), mode="expand", borderaxespad=0.0)
 ax.set_xlabel("z (mm)")

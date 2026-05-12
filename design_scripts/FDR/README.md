@@ -93,6 +93,48 @@ refuse to run if the data isn't present.
 | `real_data.py` | Through-peak frames, ROI vs. point-detector sums, kymograph + zooms, cosmic-ray example. | `through_peak.png`, `detector_sum.png`, `khymo_full.png`, `cosmic.png` |
 | `live_data_varidation.py` | Streaming validation of the chunked summing pipeline. | `live_data_validation.png` |
 
+## Output figure index
+
+The table below maps every saved PNG (written to `figures/` by default) back
+to the script that generates it.
+
+| Output PNG | Generating script |
+| --- | --- |
+| `angle_to_measure.png` | `detector_layout.py` |
+| `chi_stability.png` | `chi_sensativity.py` |
+| `concentricity_vs_distance.png` | `concentricity.py` |
+| `concentricity_vs_energy.png` | `concentricity.py` |
+| `corrections_arm_vs_scattering.png` | `corrections_scales.py` |
+| `corrections_scattering_vs_arm.png` | `corrections_scales.py` |
+| `cosmic.png` | `real_data.py` |
+| `crystal_t_sensitivity.png` | `crystal_t_sensativity.py` |
+| `delta_L_angle.png` | `delta_L_angle.py` |
+| `detector_distance_comparison.png` | `detector_distance.py` |
+| `detector_distance_effect.png` | `detector_distance.py` |
+| `detector_distance_phi_vs_tth.png` | `detector_distance.py` |
+| `detector_sum.png` | `real_data.py` |
+| `diff_roll.png` | `diff_roll.py` |
+| `gauge_crosssection_fig1.png` | `guage_crosssection.py` |
+| `gauge_crosssection_fig2.png` | `guage_crosssection.py` |
+| `gauge_volume.png` | `gague_volume.py` |
+| `geometric_strip.png` | `geometric_strip.py` |
+| `inherent_correction_error_crystal_position.png` | `inherent_correction_error.py` |
+| `inherent_correction_error_per_detector.png` | `inherent_correction_error.py` |
+| `khymo_full.png` | `real_data.py` |
+| `layout.png` | `detector_layout.py` |
+| `layout_grid.png` | `detector_layout.py` |
+| `live_data_validation.png` | `live_data_varidation.py` |
+| `min_crystal_distance.png` | `min_crystal_distance.py` |
+| `off_center.png` | `off_center.py` |
+| `phi_coverage_crystal_position.png` | `phi_coverage2.py` |
+| `phi_coverage_full.png` | `phi_coverage2.py` |
+| `phi_coverage_simple.png` | `phi_coverage.py` |
+| `scan_coverage.png` | `scan_coverage.py` |
+| `theta_d_stability.png` | `theta_d_sensativity.py` |
+| `through_peak.png` | `real_data.py` |
+
+Scripts that produce interactive plots only (no saved PNG): `crystal_footprint.py`, `mac_sensitivity.py`, `velocity_stability.py`.
+
 ## Running the tests
 
 The smoke tests (`tests/test_fdr_scripts_smoke.py`) verify that every script

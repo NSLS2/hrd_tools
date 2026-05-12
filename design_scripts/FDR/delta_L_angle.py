@@ -39,7 +39,7 @@ R = _blessed.analyzer.R * 1e3                  # µm  (mm * 1e3)
 delta_theta = np.linspace(-0.001, 0.001, 512)  # deg
 
 cmap = mpl.colormaps["viridis"]
-fig, (ax, ax2) = plt.subplots(1, 2, layout="constrained", sharey=True)
+fig, (ax, ax2) = plt.subplots(1, 2, layout="constrained", sharey=True, figsize=(8, 4))
 fig.suptitle(f"At {E / 1000:g}keV and {R / 1e6:g}m")
 
 for arm_tth in [1.5, 5, 15, 25, 45, 90][::-1]:
@@ -64,12 +64,13 @@ ax.legend()
 arm_tths = np.linspace(1.5, 90, 512)
 cmap = mpl.colormaps["plasma"]
 ax2.set_xlabel(r"$2\Theta$ (deg)")
-for delta_theta in [darwin_mdeg / (1000 * _) for _ in (2, 5, 10, 100)]:
+for delta_theta, j in [(darwin_mdeg / (1000 * _), _) for _ in (1, 2, 5)]:
+    dw_str = rf'$\theta_{{d}} / {j}$' if j != 1 else r'$\theta_{d}$'
     (ln,) = ax2.plot(
         arm_tths,
         delta_L(R, arm_tths, delta_theta),
-        label=rf"$\delta \theta_i$ = {1e6 * delta_theta:.2f} (μdeg)",
-        color=cmap(2 * delta_theta / (darwin_mdeg / 1000)),
+        label=rf"$\delta \theta_i$ = {dw_str} ({1e6 * delta_theta:.1f} μdeg)",
+        color=cmap((j - 1)/4),
     )
     ax2.plot(arm_tths, delta_L(R, arm_tths, -delta_theta), color=ln.get_color())
 ax2.axhspan(-5, 5, color="k", alpha=0.1)

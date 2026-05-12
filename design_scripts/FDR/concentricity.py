@@ -70,12 +70,13 @@ energies = np.linspace(10, 40, 1000)            # keV
 _R_um = _R_mm * 1000.0                          # µm
 widths = [gauge_width(_R_um, E) for E in energies]
 
-fig = plt.figure(figsize=(10, 6), layout="constrained")
+fig = plt.figure(figsize=(2.5, 3.25), layout="constrained")
 ax = fig.add_subplot(111)
-ax.plot(energies, widths)
+ax.plot(energies, widths, label=f'R={_R_mm:.0f} mm')
 ax.set_xlabel("Energy (keV)")
 ax.set_ylabel("Gauge Width (um)")
-ax.set_title(f"Inherent Gauge Width at R={_R_mm:.0f} mm vs Energy")
+#ax.set_title(f"Inherent Gauge Width at R={_R_mm:.0f} mm vs Energy")
+ax.legend()
 ax.grid(True)
 _save(fig, "concentricity_vs_energy.png")
 

@@ -8,6 +8,7 @@ from scipy import optimize
 
 import _fdr_params
 from hrd_tools.xrt import CrystalProperties
+from matplotlib import transforms
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
