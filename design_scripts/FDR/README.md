@@ -90,7 +90,7 @@ refuse to run if the data isn't present.
 
 | Script | Description | Outputs |
 | --- | --- | --- |
-| `real_data.py` | Through-peak frames, ROI vs. point-detector sums, kymograph + zooms, cosmic-ray example. | `through_peak.png`, `detector_sum.png`, `khymo_full.png`, `cosmic.png` |
+| `real_data.py` | Through-peak frames, ROI vs. point-detector sums, kymograph + zooms, cosmic-ray example, offset-corrected spectra for all detectors. | `through_peak.png`, `detector_sum.png`, `khymo_full.png`, `cosmic.png`, `aligned_spectra.png` |
 | `live_data_varidation.py` | Streaming validation of the chunked summing pipeline. | `live_data_validation.png` |
 
 ## Output figure index

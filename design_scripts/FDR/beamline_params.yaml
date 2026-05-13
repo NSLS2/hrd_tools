@@ -73,7 +73,6 @@ beam:                              # diff_roll.py and similar divergence studies
 
 real_data:                         # live_data_varidation.py / real_data.py
   root: /mnt/store/bnl/cache/hrd/beamtime_cleanup/reorg/raw/v3/   # path
-  dataset: 11bmb_2387_mda_defROI                                  # name
+  dataset: 11bmb_2387                                             # name
   version: 3                        # int   -- dataset reduction version
   rois_file: rois_11bm.yaml        #        -- relative to this YAML
-  save_base: /home/tcaswell/windows_bridge/                       # path -- default --outdir

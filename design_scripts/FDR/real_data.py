@@ -9,11 +9,15 @@ from pathlib import Path
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+from matplotlib.animation import PillowWriter
 import numpy as np
+import numpy.typing as npt
 import scipy.signal
+import tqdm
 from matplotlib.patches import Rectangle
-from multihead.config import DetectorROIs
-from multihead.file_io import open_data
+from multihead.config import AnalyzerConfig, BankCalibration, DetectorROIs, SpectraCalib
+from multihead.file_io import HRDRawBase, open_data
+from multihead.raw_proc import scale_tth
 
 import _fdr_params
 
@@ -186,5 +190,137 @@ ax.annotate(
 cbar = fig.colorbar(im, extend="min")
 cbar.set_ticks([1, 2])
 _save(fig, "cosmic.png")
+
+# %%
+
+
+def estimate_crystal_offsets(
+    raw: HRDRawBase,
+    flats: dict[int, tuple[npt.NDArray[np.floating], npt.NDArray[np.uint16]]],
+) -> dict[int, float]:
+    bin_size = raw.get_nominal_bin()
+    out: dict[int, float] = {}
+    iterator = iter(flats.items())
+    det, (_, ref) = next(iterator)
+    (Npts,) = ref.shape
+    out[det] = cum_offset = 0.0
+
+    for det, (_, I) in iterator:
+        offset = np.argmax(np.correlate(ref, I, mode="full")) - Npts - 2
+        cum_offset += offset * bin_size
+        out[det] = cum_offset
+        ref = I
+
+    return out
+
+
+# %%
+# Compute integrated (flat) spectra for all detectors using their ROIs
+flats: dict[int, tuple[npt.NDArray[np.floating], npt.NDArray[np.uint16]]] = {}
+for det, roi in tqdm.tqdm(rois.rois.items(), desc="integrating detectors"):
+    det_data = raw.get_detector(det)
+    rslc, cslc = roi.to_slices()
+    I = det_data[:, rslc, cslc].sum(axis=1, dtype=np.uint32).todense().sum(axis=1)
+    flats[det] = (arm_tth, I)
+
+# %%
+offsets = estimate_crystal_offsets(raw, flats)
+
+default_wavelength = 0.8272  # Å for 15 keV
+default_scale = 1.0
+
+calibrations = {
+    det: SpectraCalib(
+        offset=offset,
+        scale=default_scale,
+        wavelength=default_wavelength,
+        analyzer=AnalyzerConfig(
+            R=910.0,
+            Rd=120.0,
+            center=128,
+            theta_i=np.rad2deg(np.arcsin(default_wavelength / (2 * 3.1355))),
+            theta_d=2 * np.rad2deg(np.arcsin(default_wavelength / (2 * 3.1355))),
+            crystal_roll=0.0,
+            crystal_yaw=0.0,
+        ),
+    )
+    for det, offset in offsets.items()
+}
+
+calibration_config = BankCalibration(
+    calibrations=calibrations,
+    software={"name": "multihead", "version": "dev", "script": "real_data.py"},
+    parameters={
+        "num_detectors": len(offsets),
+        "estimation_method": "correlation_based",
+        "default_wavelength_nm": default_wavelength,
+        "default_scale": default_scale,
+    },
+    pixel_pitch=0.055,
+)
+calibs = calibration_config.calibrations
+
+# %%
+mon = raw.get_monitor()
+
+fig_spectra, ax_spectra = plt.subplots(layout="constrained", figsize=(7, 4))
+for d, (tth, I) in flats.items():
+    ax_spectra.plot(
+        scale_tth(
+            tth + calibs[d].offset,
+            calibs[d].wavelength,
+            calibration_config.average_wavelength,
+        ),
+        (I / mon) * calibs[d].scale,
+        label=str(d),
+    )
+ax_spectra.legend(ncols=2, fontsize="small")
+ax_spectra.set_xlabel(r"$2\theta$ (deg)")
+ax_spectra.set_ylabel("I / monitor (arb)")
+ax_spectra.set_title("Offset-corrected spectra — all detectors")
+_save(fig_spectra, "aligned_spectra.png")
+
+# %%
+# Animated GIF cutting through the peak (same range as the 5x5 grid figure)
+cmap_gif = mpl.colormaps["plasma"].with_extremes(under="w", over="r")
+norm_gif = mpl.colors.Normalize(1, 30)
+peak_tth = arm_tth[center_frame]
+
+fig_gif, ax_gif = plt.subplots(layout="constrained", figsize=(4, 3.5))
+im_gif = ax_gif.imshow(
+    data[center_frame - 15].todense(), cmap=cmap_gif, norm=norm_gif, origin="lower"
+)
+cb_gif = fig_gif.colorbar(im_gif, extend="min")
+cb_gif.set_ticks([1, 10, 20, 30])
+cb_gif.set_label("photons")
+ax_gif.xaxis.set_major_locator(mticker.NullLocator())
+ax_gif.yaxis.set_major_locator(mticker.NullLocator())
+
+txt_angle = ax_gif.text(
+    0.02,
+    0.98,
+    "",
+    transform=ax_gif.transAxes,
+    va="top",
+    ha="left",
+    fontsize="small",
+    color="w",
+    bbox=dict(boxstyle="round,pad=0.3", fc="black", alpha=0.6),
+)
+
+_gif_out = _args.outdir / "through_peak.gif"
+_writer = PillowWriter(fps=10)
+with _writer.saving(fig_gif, _gif_out, dpi=_args.dpi):
+    for j in range(25):
+        offset = j - 15
+        frame = center_frame + offset
+        im_gif.set_data(data[frame].todense())
+        delta_deg = (arm_tth[frame] - peak_tth) * 1000  # mdeg
+        txt_angle.set_text(
+            f"$2\\Theta$={arm_tth[frame]:.3f}°\n"
+            f"$\\Delta 2\\Theta$={delta_deg:> 5.1f} mdeg\n"
+            f"$\\Delta_{{fr}}$={offset}"
+        )
+        _writer.grab_frame()
 
 _fdr_params.maybe_show(_args)
