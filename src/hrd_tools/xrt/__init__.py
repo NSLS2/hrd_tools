@@ -6,7 +6,7 @@ import xrt.backends.raycing.materials as rmats
 
 from .sources import XrdSource
 
-__all__ = ["XrdSource", "CrystalProperties"]
+__all__ = ["CrystalProperties", "XrdSource"]
 
 
 @dataclass

@@ -1,10 +1,10 @@
 import argparse
+import uuid
 from collections import defaultdict
 from dataclasses import asdict, fields, replace
+from hashlib import md5
 from pathlib import Path
 from typing import Any, get_args, get_origin
-from hashlib import md5
-import uuid
 
 import numpy as np
 import tomli_w
@@ -21,15 +21,16 @@ def _to_toml_serializable(obj: Any) -> Any:
         return [_to_toml_serializable(v) for v in obj]
     return obj
 
+
 from hrd_tools.config import (
     AnalyzerCalibration,
     AnalyzerConfig,
     CompleteConfig,
     DetectorConfig,
+    GeneratorInvocation,
     SimConfig,
     SimScanConfig,
     SourceConfig,
-    GeneratorInvocation,
 )
 
 
@@ -76,7 +77,7 @@ def _set_delta_phi(config: CompleteConfig) -> CompleteConfig:
     half_phi = effective_half_phi(tth_rad, d, detector_width)
     return replace(
         config,
-        source=replace(config.source, delta_phi=2*np.rad2deg(half_phi)),
+        source=replace(config.source, delta_phi=2 * np.rad2deg(half_phi)),
     )
 
 
@@ -258,7 +259,7 @@ def main():
     for key in sorted(allowed_keys):
         conv = type_map[key]
         # Special case: make short_description required at argparse level
-        is_required = (key == "short_description")
+        is_required = key == "short_description"
         parser.add_argument(
             f"--{key}",
             type=lambda s, conv=conv: list_type(s, conv),
@@ -326,7 +327,10 @@ def main():
         )
 
         with open(config_path / f"config_{j}.toml", "wb") as fout:
-            tomli_w.dump(_to_toml_serializable({**asdict(config), "generator": asdict(gen_md)}), fout)
+            tomli_w.dump(
+                _to_toml_serializable({**asdict(config), "generator": asdict(gen_md)}),
+                fout,
+            )
 
     subdir = args.subdir or ""
     print(
