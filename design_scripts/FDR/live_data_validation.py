@@ -8,20 +8,20 @@ import contextlib
 import json
 from pathlib import Path
 
+import _fdr_params
 import matplotlib.pyplot as plt
-from matplotlib.animation import PillowWriter
 import numpy as np
 import pyarrow as pa
 import sparse
 import tqdm
+from matplotlib.animation import PillowWriter
 from multihead.config import DetectorROIs
 from multihead.file_io import open_data
 
-import _fdr_params
-
 _parser = _fdr_params.make_argparser(__doc__)
-_parser.add_argument("--gif", action="store_true",
-                     help="Save animation as a GIF next to the output PNG.")
+_parser.add_argument(
+    "--gif", action="store_true", help="Save animation as a GIF next to the output PNG."
+)
 _ns = _parser.parse_args()
 _args = _fdr_params.CLIArgs(
     outdir=Path(_ns.outdir),
@@ -66,8 +66,8 @@ thetas = np.zeros_like(output) + np.arange(12).reshape(-1, 1) * 2
 fig, ax = plt.subplots()
 lines = ax.plot(output.T)
 for j, ln in enumerate(lines):
-    ln.set_label(f'Detector {j+1}')
-    ln.set_zorder(ln.get_zorder()-j/10)
+    ln.set_label(f"Detector {j + 1}")
+    ln.set_zorder(ln.get_zorder() - j / 10)
 ax.set_ylim(0, 45_000)
 ax.set_xlim(-5, 55)
 ax.legend(ncol=2)
@@ -88,7 +88,9 @@ with contextlib.ExitStack() as _stack:
             shape=(12, end_frame + 1, 256, 256),
         )
         for k, (rslc, cslc) in enumerate(roi_slices):
-            output[k, patch_slc] = new_frames[k, :, rslc, cslc].sum(axis=(1, 2)).todense()
+            output[k, patch_slc] = (
+                new_frames[k, :, rslc, cslc].sum(axis=(1, 2)).todense()
+            )
 
         for k, (ln, o, lth) in enumerate(zip(lines, output, thetas, strict=True)):
             ln.set_data(lth, o + k * 1_000)

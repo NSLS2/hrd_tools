@@ -1,10 +1,9 @@
 """Divergence in intercept geometry when ignoring the gauge volume's extent."""
 
 # %%
+import _fdr_params
 import matplotlib.pyplot as plt
 import numpy as np
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
@@ -16,8 +15,8 @@ def intercept(tth, w, d):
     return np.sin(np.pi - w) * d / np.sin(w + tth - np.pi)
 
 
-d = 2                                          # mm
-tth = np.linspace(-10, 120, 1024)              # deg
+d = 2  # mm
+tth = np.linspace(-10, 120, 1024)  # deg
 
 # %% [markdown]
 #

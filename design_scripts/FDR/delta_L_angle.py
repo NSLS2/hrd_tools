@@ -1,12 +1,11 @@
 """Detector-spot shift δL vs incident-angle error δθ_i."""
 
 # %%
+import _fdr_params
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import xrt.backends.raycing.materials as rmats
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
@@ -17,8 +16,11 @@ _blessed = _fdr_params.complete_config()
 mpl.rcParams["savefig.dpi"] = _args.dpi
 
 # %%
-E = (_args.energy_keV if _args.energy_keV is not None
-     else _blessed.source.E_incident / 1000.0) * 1000.0   # eV
+E = (
+    _args.energy_keV
+    if _args.energy_keV is not None
+    else _blessed.source.E_incident / 1000.0
+) * 1000.0  # eV
 crystal = rmats.CrystalSi(t=_fdr_params.crystal_reference()["thickness_mm"])
 
 # in mdeg
@@ -35,7 +37,7 @@ def delta_L(R, arm_tth, delta_theta):
 
 
 # %%
-R = _blessed.analyzer.R * 1e3                  # µm  (mm * 1e3)
+R = _blessed.analyzer.R * 1e3  # µm  (mm * 1e3)
 delta_theta = np.linspace(-0.001, 0.001, 512)  # deg
 
 cmap = mpl.colormaps["viridis"]
@@ -65,12 +67,12 @@ arm_tths = np.linspace(1.5, 90, 512)
 cmap = mpl.colormaps["plasma"]
 ax2.set_xlabel(r"$2\Theta$ (deg)")
 for delta_theta, j in [(darwin_mdeg / (1000 * _), _) for _ in (1, 2, 5)]:
-    dw_str = rf'$\theta_{{d}} / {j}$' if j != 1 else r'$\theta_{d}$'
+    dw_str = rf"$\theta_{{d}} / {j}$" if j != 1 else r"$\theta_{d}$"
     (ln,) = ax2.plot(
         arm_tths,
         delta_L(R, arm_tths, delta_theta),
         label=rf"$\delta \theta_i$ = {dw_str} ({1e6 * delta_theta:.1f} μdeg)",
-        color=cmap((j - 1)/4),
+        color=cmap((j - 1) / 4),
     )
     ax2.plot(arm_tths, delta_L(R, arm_tths, -delta_theta), color=ln.get_color())
 ax2.axhspan(-5, 5, color="k", alpha=0.1)

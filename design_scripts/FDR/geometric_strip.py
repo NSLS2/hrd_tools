@@ -1,10 +1,9 @@
 """(R, 2θ, φ) variation along an oblique line in lab coordinates."""
 
 # %%
+import _fdr_params
 import matplotlib.pyplot as plt
 import numpy as np
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
@@ -29,7 +28,7 @@ def line_path(start, stop, npt=1024):
 
 
 # %%
-start, stop = (50, 0, 1200), (200, 1000, -200)   # mm
+start, stop = (50, 0, 1200), (200, 1000, -200)  # mm
 x, y, z = line_path(start, stop)
 r, theta, phi = to_spherical(x, y, z)
 

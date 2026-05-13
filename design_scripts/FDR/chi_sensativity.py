@@ -8,6 +8,7 @@ Run with::
 """
 
 import _fdr_params
+
 from hrd_tools.sensitivity import main
 
 _args = _fdr_params.parse_args(__doc__)

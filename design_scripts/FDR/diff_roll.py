@@ -7,19 +7,18 @@
 """Maximum diffractometer roll vs vertical-divergence budget."""
 
 # %%
+import _fdr_params
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import root_scalar
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
 _beam = _fdr_params.beam()
 
 # %%
-v_div = _beam["v_div_mrad"]               # mrad
-h_div = _beam["h_div_mrad"]               # mrad
+v_div = _beam["v_div_mrad"]  # mrad
+h_div = _beam["h_div_mrad"]  # mrad
 # accept N% increase in divergence
 max_div_perc = _beam["max_div_perc"]
 max_div = v_div * (1 + max_div_perc)

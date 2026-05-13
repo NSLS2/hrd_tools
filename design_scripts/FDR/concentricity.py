@@ -8,17 +8,21 @@
 
 # %%
 
+import _fdr_params
 import matplotlib.pyplot as plt
 import numpy as np
 
-import _fdr_params
 from hrd_tools.xrt import CrystalProperties
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
 _blessed = _fdr_params.complete_config()
-_e_keV = _args.energy_keV if _args.energy_keV is not None else _blessed.source.E_incident / 1000.0
-_R_mm = _blessed.analyzer.R                     # mm
+_e_keV = (
+    _args.energy_keV
+    if _args.energy_keV is not None
+    else _blessed.source.E_incident / 1000.0
+)
+_R_mm = _blessed.analyzer.R  # mm
 
 print(f"{plt.get_backend()=}")
 
@@ -66,22 +70,22 @@ def gauge_width(R: float, energy: float) -> float:
 
 # %%
 # Plot gauge width vs energy at R = blessed analyzer.R
-energies = np.linspace(10, 40, 1000)            # keV
-_R_um = _R_mm * 1000.0                          # µm
+energies = np.linspace(10, 40, 1000)  # keV
+_R_um = _R_mm * 1000.0  # µm
 widths = [gauge_width(_R_um, E) for E in energies]
 
 fig = plt.figure(figsize=(2.5, 3.25), layout="constrained")
 ax = fig.add_subplot(111)
-ax.plot(energies, widths, label=f'R={_R_mm:.0f} mm')
+ax.plot(energies, widths, label=f"R={_R_mm:.0f} mm")
 ax.set_xlabel("Energy (keV)")
 ax.set_ylabel("Gauge Width (um)")
-#ax.set_title(f"Inherent Gauge Width at R={_R_mm:.0f} mm vs Energy")
+# ax.set_title(f"Inherent Gauge Width at R={_R_mm:.0f} mm vs Energy")
 ax.legend()
 ax.grid(True)
 _save(fig, "concentricity_vs_energy.png")
 
 # Plot gauge width vs distance at canonical energy
-R = np.linspace(0, 10_000_000, 512)              # µm
+R = np.linspace(0, 10_000_000, 512)  # µm
 widths = gauge_width(R, _e_keV)
 
 fig = plt.figure(figsize=(10, 6), layout="constrained")

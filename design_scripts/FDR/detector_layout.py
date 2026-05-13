@@ -7,12 +7,11 @@
 # %%
 from dataclasses import dataclass
 
+import _fdr_params
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Wedge
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)

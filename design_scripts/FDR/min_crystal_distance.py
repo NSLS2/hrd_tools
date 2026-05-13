@@ -8,10 +8,9 @@
 """Minimum crystal-to-sample distance vs gauge depth and arm pitch."""
 
 # %%
+import _fdr_params
 import matplotlib.pyplot as plt
 import numpy as np
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
@@ -29,10 +28,10 @@ def distance_to_seperation(delta, target_width):
 
 # %%
 
-tth = np.linspace(0, 90, 128)                  # deg
-gague_depth = 5                                # mm   (default; sweep below)
-delta = _layout["pitch_deg"]                   # deg  (between adjacent crystals)
-clearance = 25                                 # mm
+tth = np.linspace(0, 90, 128)  # deg
+gague_depth = 5  # mm   (default; sweep below)
+delta = _layout["pitch_deg"]  # deg  (between adjacent crystals)
+clearance = 25  # mm
 
 # %%
 

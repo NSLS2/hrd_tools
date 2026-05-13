@@ -3,6 +3,7 @@
 # %%
 from typing import NamedTuple
 
+import _fdr_params
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,18 +11,19 @@ import xrt.backends.raycing.materials as rmats
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import Annulus, Circle
 
-import _fdr_params
-
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
 _blessed = _fdr_params.complete_config()
 
 # %%
-E = (_args.energy_keV if _args.energy_keV is not None
-     else _blessed.source.E_incident / 1000.0) * 1000.0       # eV
+E = (
+    _args.energy_keV
+    if _args.energy_keV is not None
+    else _blessed.source.E_incident / 1000.0
+) * 1000.0  # eV
 crystal = rmats.CrystalSi(t=_fdr_params.crystal_reference()["thickness_mm"])
 
-R = _blessed.analyzer.R                                       # mm
+R = _blessed.analyzer.R  # mm
 
 # in rad
 darwin_rad = crystal.get_Darwin_width(E)
@@ -111,8 +113,8 @@ def gague_corners(
 # %%
 # Figure 1
 fig, ax = plt.subplots(layout="constrained", figsize=(7.5, 3.5))
-x_vals = np.array([-5, 1000])                  # mm
-angles = [5, 45, 85]                           # deg
+x_vals = np.array([-5, 1000])  # mm
+angles = [5, 45, 85]  # deg
 colors = mpl.colormaps["tab10"](range(3))
 line_styles = [
     {},
@@ -145,18 +147,22 @@ for angle, color in zip(angles, colors, strict=True):
             zorder=2,
         )
 
-ID = 1                                         # mm  (inner diameter)
-OD = 1.1                                       # mm  (outer diameter)
+ID = 1  # mm  (inner diameter)
+OD = 1.1  # mm  (outer diameter)
 
 sample = Circle((0, 0), (ID / 2), color="r", zorder=0, alpha=0.75, label="sample")
-tube = Annulus((0, 0), (OD / 2), (OD - ID) / 2, color="k", zorder=0, label="capillary wall")
+tube = Annulus(
+    (0, 0), (OD / 2), (OD - ID) / 2, color="k", zorder=0, label="capillary wall"
+)
 ax.add_artist(sample)
 ax.add_artist(tube)
 ax.axhspan(-0.5, 0.5, color="gray", alpha=0.5, label="Incoming beam")
 ax.set_xlim(-5.0, 5.0)
 ax.set_ylim(-1.5, 1.5)
 ax.set_aspect("equal")
-ax.legend(ncol=3, bbox_to_anchor=(0.0, 1.02, 1.0, 0.102), mode="expand", borderaxespad=0.0)
+ax.legend(
+    ncol=3, bbox_to_anchor=(0.0, 1.02, 1.0, 0.102), mode="expand", borderaxespad=0.0
+)
 ax.set_xlabel("z (mm)")
 ax.set_ylabel("y (mm)")
 _save(fig, "gauge_crosssection_fig1.png")

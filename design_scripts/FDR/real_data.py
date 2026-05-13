@@ -6,20 +6,19 @@
 # %%
 from pathlib import Path
 
+import _fdr_params
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-from matplotlib.animation import PillowWriter
 import numpy as np
 import numpy.typing as npt
 import scipy.signal
 import tqdm
+from matplotlib.animation import PillowWriter
 from matplotlib.patches import Rectangle
 from multihead.config import AnalyzerConfig, BankCalibration, DetectorROIs, SpectraCalib
 from multihead.file_io import HRDRawBase, open_data
 from multihead.raw_proc import scale_tth
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)

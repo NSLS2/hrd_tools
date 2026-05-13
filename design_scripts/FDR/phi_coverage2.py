@@ -12,12 +12,11 @@
 # that here as the dominating factor is detector size.
 
 # %%
+import _fdr_params
 import matplotlib.pyplot as plt
 import numpy as np
-from multihead.config import AnalyzerConfig
 from multihead.corrections import arm_from_z
 
-import _fdr_params
 from hrd_tools.detector_stats import detectors
 
 _args = _fdr_params.parse_args(__doc__)

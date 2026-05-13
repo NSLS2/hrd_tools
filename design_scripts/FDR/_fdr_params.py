@@ -19,10 +19,10 @@ next to the FDR scripts and is imported by relative path by them.
 from __future__ import annotations
 
 import argparse
-import sys
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
@@ -132,7 +132,9 @@ def analyzer_multihead(
 
     raw = _load_raw(path)
     a = raw["analyzer"]
-    e_keV = energy_keV if energy_keV is not None else raw["source"]["E_incident"] / 1000.0
+    e_keV = (
+        energy_keV if energy_keV is not None else raw["source"]["E_incident"] / 1000.0
+    )
     props = CrystalProperties.create(E=e_keV)
     return MHAnalyzerConfig(
         R if R is not None else a["R"],
@@ -285,8 +287,8 @@ def maybe_show(args: CLIArgs, *, block: bool = True) -> None:
 
 
 __all__ = [
-    "CLIArgs",
     "DEFAULT_YAML",
+    "CLIArgs",
     "analyzer_multihead",
     "beam",
     "complete_config",
