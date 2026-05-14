@@ -3,7 +3,6 @@ from dataclasses import asdict, fields, is_dataclass
 import h5py
 import numpy as np
 import xrt.backends.raycing.run as rrun
-import xrt.backends.raycing.sources.beams as rsources_beams
 
 from hrd_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
 from hrd_tools.xrt.endstation import Endstation
