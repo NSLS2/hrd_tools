@@ -3,7 +3,6 @@ from dataclasses import dataclass, replace
 from typing import Self
 
 import numpy as np
-import pandas as pd
 import xrt.backends.raycing as raycing
 import xrt.backends.raycing.materials as rmats
 import xrt.backends.raycing.oes as roes
@@ -37,14 +36,6 @@ class Endstation:
         arm_tth = np.deg2rad(15)
         beamLine = raycing.BeamLine()
 
-        reference_pattern = pd.read_csv(
-            source.pattern_path,
-            skiprows=3,
-            names=["theta", "I1", "I0"],
-            sep=" ",
-            skipinitialspace=True,
-            index_col=False,
-        )
         delta_phi = np.deg2rad(source.delta_phi)
         beamLine.geometricSource01 = XrdSource(
             bl=beamLine,
@@ -65,7 +56,7 @@ class Endstation:
                 source.E_incident,
                 source.E_incident * source.E_hwhm,
             ],
-            pattern=reference_pattern,
+            pattern_path=source.pattern_path,
             nrays=sim.nrays,
             horizontal_divergence=source.h_div,
             vertical_divergence=source.v_div,

@@ -1,10 +1,9 @@
 from dataclasses import asdict, fields, is_dataclass
 
 import h5py
-import multianalyzer.opencl
 import numpy as np
 import xrt.backends.raycing.run as rrun
-import xrt.backends.raycing.sources_beams as rsources_beams
+import xrt.backends.raycing.sources.beams as rsources_beams
 
 from hrd_tools.config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
 from hrd_tools.xrt.endstation import Endstation
@@ -65,8 +64,6 @@ def show_bl(bl: Endstation):
             beam=geometricSource01beamGlobal01
         )
 
-        main = rsources_beams.Beam(copyFrom=geometricSource01beamGlobal01)
-
         outDict = {
             "source": geometricSource01beamGlobal01,
             "source_screen": screen01beamLocal01,
@@ -88,35 +85,39 @@ def show_bl(bl: Endstation):
                 beam=oeglobal
             )
 
+        del oeglobal
+        del oelocal
         # prepare flow looks at the locals of this frame so update them
         locals().update(outDict)
-        beamLine.prepare_flow()
+        # beamLine.prepare_flow()
 
         return outDict
 
     def gen(beamline: Endstation):
-        ring_tth = np.deg2rad(10)
+        ring_tth = np.deg2rad(8)
         start = ring_tth - (beamline.analyzer.N - 1) * beamline.analyzer.cry_offset
         tths = np.linspace(start, ring_tth, 128)
-        beamline.set_arm(tths[30])
-        # beamline.screen_main.name = f"{tth:.4f}"
+        beamline.set_arm(tths[len(tths) // 2])
         yield
         for j, tth in enumerate(tths):
-            # beamline.screen_main.name = f"{tth:.4f}"
             beamline.set_arm(tth)
             beamline.bl.glowFrameName = f"/tmp/frame_{j:04d}.png"
             yield
 
     rrun.run_process = run_process
     bl.bl.glow(
-        centerAt="screen01", exit_on_close=False, generator=gen, generatorArgs=[bl]
+        centerAt="screen01",
+        # exit_on_close=False,
+        generator=gen,
+        generatorArgs=[bl],
     )
     # bl.glow(scale=[5e3, 10, 5e3], centerAt='xtal1')
     # xrtrun.run_ray_tracing(beamLine=bl, generator=gen, generatorArgs=[bl])
 
 
 bl = Endstation.from_configs(config, source_config, detector_config, sim_config)
-# show_bl(bl)
+bl.run_process()
+show_bl(bl)
 
 
 def build_hist(lb, *, isScreen=True, pixel_size=0.055, shape=(448, 512)):
@@ -299,6 +300,8 @@ def reduce_raw(
     phi_max: float = 90,
     # calibration: AnalyzerCalibration,
 ):
+    import multianalyzer.opencl
+
     cls = multianalyzer.MultiAnalyzer
     # cls = multianalyzer.opencl.OclMultiAnalyzer
     # cls.NUM_CRYSTAL = np.int32(analyzer.N)
