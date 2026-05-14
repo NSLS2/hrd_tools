@@ -1,21 +1,22 @@
-from itertools import count
 import contextlib
+import json
 from dataclasses import asdict, fields, is_dataclass
+from itertools import count
+
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import sparse
-import numpy as np
 import tomllib
 import tqdm
-import json
 
 from hrd_tools.config import (
     AnalyzerConfig,
     DetectorConfig,
+    GeneratorInvocation,
     SimConfig,
     SimScanConfig,
     SourceConfig,
-    GeneratorInvocation,
 )
 from hrd_tools.xrt.endstation import Endstation
 
