@@ -62,15 +62,15 @@ sphinxcontrib-jquery = ">=4.1,<5"
 h5py = ">=3.16.0,<4"
 matplotlib = ">=3.10.8,<4"
 pyopencl = ">=2025.2.7,<2026"
-python = ">=3.14.3,<3.15"
+python = ">=3.13,<3.14"
 pytools = ">=2025.2.5,<2026"
 scipy = ">=1.17.1,<2"
-silx = ">=2.2.2,<3"
+silx = "*"
 ipykernel = ">=7.2.0,<8"
 ipympl = ">=0.10.0,<0.11"
 jupytext = ">=1.19.1,<2"
 pandas = ">=2.3.3,<3"
-tiled = ">=0.1.6,<0.2"
+tiled = ">=0.2.9,<0.3"
 pymatgen = ">=2026.3.23,<2027"
 scikit-image = ">=0.26.0,<0.27"
 multihead = { git = "https://github.com/tacaswell/multihead.git", rev="main"}
@@ -95,6 +95,7 @@ sparse = ">=0.18.0,<0.19"
 pyarrow = ">=23.0.1,<24"
 
 [feature.bluesky.dependencies]
+python = ">=3.14.4,<3.15"
 bluesky = ">=1.14.6,<2"
 ophyd = ">=1.11.1,<2"
 
@@ -108,12 +109,27 @@ lint = { depends-on = ["format", "check"] }
 
 [feature.tiled.dependencies]
 tiled = ">=0.2.9,<0.3"
-h5py = ">=3.16.0,<4"
+pyarrow = ">=23.0.1,<24"
+sparse = ">=0.18.0,<0.19"
+pandas = ">=2.3.3,<3"
+numpy = ">=2.4.3,<3"
+pyyaml = ">=6,<7"
+multihead = { git = "https://github.com/tacaswell/multihead.git", rev = "main" }
 
+[feature.tiled.tasks.tiled_init_config]
+cmd = "python -m hrd_tools.tiled.cli init-config"
+description = "Generate a tiled-server config.yml for a v3 cache."
 
-[feature.tiled.tasks]
-tiled_serve = { cmd = "tiled serve config config.yml --public", cwd = "tiled", env = { TILED_API_KEY = 'secret' } }
-tiled_register = { cmd = "python register_helper.py /nsls2/data3/projects/next_iiia_hrd/xrt_output/", cwd = 'tiled', env = { TILED_API_KEY = 'secret' } }
+[feature.tiled.tasks.tiled_serve]
+args = [{ arg = "config", default = "config.yml" }]
+cmd = "tiled serve config {{ config }}"
+env = { TILED_API_KEY = "secret" }
+description = "Serve a tiled catalog given a config file path."
+
+[feature.tiled.tasks.tiled_register]
+cmd = "python -m hrd_tools.tiled.cli register"
+env = { TILED_API_KEY = "secret" }
+description = "Register v3 datasets with a running tiled server."
 
 [feature.test.dependencies]
 pytest = ">=8.0,<9"
