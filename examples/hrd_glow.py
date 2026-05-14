@@ -19,11 +19,14 @@ def main():
         cry_offset=np.deg2rad(2),
         cry_width=102,
         cry_depth=54,
-        N=3,
+        N=12,
         incident_angle=0.0,  # overwritten from Bragg angle in Endstation wrapper only
-        thickness=1,
+        thickness=10,
     )
 
+    max_tth_guess = 8
+    target_cry = 2
+    offset_deg = np.rad2deg(analyzer.cry_offset)
     source = SourceConfig(
         E_incident=29_400,
         pattern_path="/home/tcaswell/Downloads/11bmb_7871_Y1.xye",
@@ -32,8 +35,8 @@ def main():
         dy=0,
         delta_phi=5,  # degrees
         E_hwhm=1.4e-4,
-        min_tth=5,
-        max_tth=15,
+        min_tth=max_tth_guess - target_cry * offset_deg,
+        max_tth=max_tth_guess + (analyzer.N - target_cry) * offset_deg
     )
 
 #    sim = SimConfig(nrays=3_000_000)
@@ -43,7 +46,7 @@ def main():
     pattern = hrd.source.pattern
     max_I_tth = pattern['theta'].loc[pattern.idxmax()['I1']]
     print(f'{max_I_tth=}')
-    hrd.set_arm(np.deg2rad(max_I_tth - analyzer.cry_offset))
+    hrd.set_arm(np.deg2rad(max_I_tth - 2*offset_deg))
     # hrd.set_arm(np.deg2rad(5))
     rrun.run_process = run_process
     scene_settings = {'apertureBladeWidth': 102/4, 'apertureDefaultSpan': 115,
