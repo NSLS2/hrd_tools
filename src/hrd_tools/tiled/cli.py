@@ -291,7 +291,7 @@ def _build_config(
                 "tree": "catalog",
                 "path": "/",
                 "args": {
-                    "uri": f"file://{catalog_db}",
+                    "uri": f"sqlite:///{catalog_db}",
                     "readable_storage": [str(source_root), str(cache_root)],
                     "init_if_not_exists": True,
                 },

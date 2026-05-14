@@ -436,6 +436,136 @@ def test_rewrite_series_round_trip(
         assert np.array_equal(got.todense(), expected.todense())
 
 
+def test_rewrite_streaming_small_batches(tmp_path: Path):
+    """
+    A small ``batch_size`` forces many iter_batches loops with batches
+    that may straddle frame-chunk boundaries.  The sequential rewriter
+    must still close per-block writers as soon as the block advances,
+    and produce a faithful cache.
+    """
+    src, arr, _ = _make_v3_dir(
+        tmp_path,
+        "run_stream",
+        n_frames=12,
+        n_detectors=3,
+        pixel_size=64,
+        seed=11,
+    )
+    cache = tmp_path / "cache_stream"
+    res = rewrite_v3_directory(src, cache, frames_per_chunk=2, batch_size=8)
+    assert not res.skipped
+    assert res.shape == (3, 12, 64, 64)
+    assert res.chunks == (2, 2, 2, 2, 2, 2)
+
+    # Every (det, block) canonical file exists.
+    for det in range(1, 4):
+        for blk in range(len(res.chunks)):
+            path = cache / LAYOUT.detector_block_pattern.format(detector=det, block=blk)
+            assert path.exists(), f"missing {path}"
+
+    # Round-trip the data through reconstruction.
+    dense = arr.todense()
+    for det in range(1, 4):
+        got = _reconstruct_detector(
+            res.detector_block_paths[det], res.chunks, res.n_frames, 64
+        )
+        assert np.array_equal(got.todense(), dense[det - 1])
+
+
+def _write_raw_images_parquet(
+    detector: np.ndarray,
+    frame: np.ndarray,
+    row: np.ndarray,
+    col: np.ndarray,
+    data: np.ndarray,
+    shape: tuple[int, int, int, int],
+    dest: Path,
+) -> None:
+    """Write an images parquet directly from raw (possibly unsorted) arrays."""
+    table = pa.table(
+        {
+            "detector": pa.array(detector, type=pa.uint8()),
+            "frame": pa.array(frame, type=pa.uint32()),
+            "row": pa.array(row, type=pa.uint16()),
+            "col": pa.array(col, type=pa.uint16()),
+            "data": pa.array(data, type=pa.uint32()),
+        }
+    )
+    table = table.replace_schema_metadata({b"shape": json.dumps(list(shape)).encode()})
+    pq.write_table(table, dest, compression="zstd")
+
+
+def test_rewrite_rejects_frames_out_of_order_within_detector(tmp_path: Path):
+    """
+    Within a single detector run, frames must be non-decreasing.  A
+    scrambled-frame images parquet must be rejected rather than
+    silently corrupted.
+    """
+    n_frames = 10
+    n_detectors = 2
+    pixel_size = 32
+    # Construct two detector runs (det 0 then det 1).  Within det 0,
+    # insert a backward frame jump that crosses a block boundary at
+    # frames_per_chunk=3 (so blocks change too).
+    detector = np.array([0, 0, 0, 0, 1, 1, 1], dtype=np.uint8)
+    frame = np.array([0, 1, 6, 2, 0, 4, 8], dtype=np.uint32)
+    row = np.zeros(7, dtype=np.uint16)
+    col = np.zeros(7, dtype=np.uint16)
+    data = np.arange(1, 8, dtype=np.uint32)
+
+    src = tmp_path / "run_scrambled_det"
+    src.mkdir()
+    _write_raw_images_parquet(
+        detector,
+        frame,
+        row,
+        col,
+        data,
+        (n_detectors, n_frames, pixel_size, pixel_size),
+        src / "images.parquet",
+    )
+    _write_scalars_parquet(n_frames, src / "scalars.parquet")
+
+    cache = tmp_path / "cache_scrambled_det"
+    with pytest.raises(ValueError, match="not sequential"):
+        rewrite_v3_directory(src, cache, frames_per_chunk=3)
+
+
+def test_rewrite_rejects_detector_out_of_order(tmp_path: Path):
+    """
+    Across detectors, the (detector, frame) lex sequence must be
+    non-decreasing -- i.e. all of det 0 before any of det 1.  A run
+    that revisits an earlier detector must be rejected.
+    """
+    n_frames = 6
+    n_detectors = 3
+    pixel_size = 32
+    # det 0 fully, then det 2, then back to det 1 -- the last segment
+    # is the violation.
+    detector = np.array([0, 0, 2, 2, 1, 1], dtype=np.uint8)
+    frame = np.array([0, 1, 0, 1, 0, 1], dtype=np.uint32)
+    row = np.zeros(6, dtype=np.uint16)
+    col = np.zeros(6, dtype=np.uint16)
+    data = np.arange(1, 7, dtype=np.uint32)
+
+    src = tmp_path / "run_scrambled_det_order"
+    src.mkdir()
+    _write_raw_images_parquet(
+        detector,
+        frame,
+        row,
+        col,
+        data,
+        (n_detectors, n_frames, pixel_size, pixel_size),
+        src / "images.parquet",
+    )
+    _write_scalars_parquet(n_frames, src / "scalars.parquet")
+
+    cache = tmp_path / "cache_scrambled_det_order"
+    with pytest.raises(ValueError, match="not sequential"):
+        rewrite_v3_directory(src, cache, frames_per_chunk=3)
+
+
 def test_rewrite_idempotent_when_unchanged(
     tmp_path: Path, synth_v3_dir: tuple[Path, sparse.COO, dict]
 ):
@@ -657,8 +787,9 @@ def test_init_config_writes_yaml(tmp_path: Path):
     assert tree["tree"] == "catalog"
     assert tree["path"] == "/"
     args = tree["args"]
-    # uri must be a file:// URI to an absolute path.
-    assert args["uri"].startswith("file://")
+    # uri must be a SQLAlchemy sqlite URL (NOT a generic file:// URI;
+    # SQLAlchemy would try to load a 'file' dialect plugin and fail).
+    assert args["uri"].startswith("sqlite:///")
     assert args["uri"].endswith(str(db.resolve()))
     # readable_storage entries are absolute paths.
     rs = args["readable_storage"]
