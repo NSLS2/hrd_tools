@@ -38,6 +38,7 @@ from typing import Any
 
 import numpy as np
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from hrd_tools.tiled import LAYOUT
@@ -423,16 +424,41 @@ def rewrite_v3_directory(
     # unrelated files (we never put any, but be defensive).
     for stale in cache_dir.glob("det_*_block-*.parquet"):
         stale.unlink()
+    for stale in cache_dir.glob("det_*_block-*.part-*.parquet"):
+        stale.unlink()
 
     # ----- Streaming rewrite ----------------------------------------------
-    # writers: (detector_1based, block_idx) -> ParquetWriter
-    writers: dict[tuple[int, int], pq.ParquetWriter] = {}
-    detector_block_paths: dict[int, list[Path]] = {
-        d: [] for d in range(1, n_detectors + 1)
-    }
-
-    # Pre-compute the schema for output files.  The data type comes from
-    # the first source file's ``data`` column.
+    # Within a single v3 images parquet file, rows are emitted in
+    # ``(detector, frame)`` lex order: every detector's full frame
+    # range appears contiguously and frames are non-decreasing within
+    # a detector.  Because frame-axis blocks are contiguous ranges of
+    # frames, the sequence of ``(detector, block)`` cells observed
+    # *within a single file* is also non-decreasing in lex order, and
+    # once we advance from one cell to the next we never return to the
+    # previous one (within that file).
+    #
+    # Across files in a numbered series the data is concatenated along
+    # the frame axis, so the second file starts at frame
+    # ``sum(prior_file_frames)`` and again iterates detector-major.
+    # That means a ``(det, block)`` cell can legitimately receive
+    # writes from more than one source file -- but for a given cell
+    # those writes are still globally in frame order.
+    #
+    # The rewrite therefore:
+    #
+    # * Keeps exactly **one** open ``ParquetWriter`` at a time, for
+    #   the active ``(det, block)`` cell within the current file.
+    # * Closes that writer as soon as the cell advances within the
+    #   file (no row from this file will return to it).
+    # * Writes each per-file contribution to a ``det_NN_block-K.part-J.parquet``
+    #   file, where ``J`` is the source file index.
+    # * After streaming, consolidates the parts of each cell into the
+    #   canonical ``det_NN_block-K.parquet`` -- with one reader and
+    #   one writer open at a time, so peak fd usage during the whole
+    #   pipeline is ~3.
+    #
+    # Within each file we enforce strict ``(det, block)`` monotonicity:
+    # going backwards inside a single file is a hard error.
     first_schema = pq.read_schema(image_paths[0])
     for required in ("detector", "frame", "row", "col", "data"):
         if first_schema.get_field_index(required) < 0:
@@ -453,128 +479,203 @@ def rewrite_v3_directory(
         ]
     )
 
-    def _open_writer(det: int, block: int) -> pq.ParquetWriter:
-        key = (det, block)
-        if key in writers:
-            return writers[key]
-        path = cache_dir / LAYOUT.detector_block_pattern.format(
+    detector_block_paths: dict[int, list[Path]] = {
+        d: [] for d in range(1, n_detectors + 1)
+    }
+    # ``cell_parts[(det, block)]`` lists the per-file part paths for
+    # that cell, in source-file order.  Most cells will have at most
+    # one part; only cells that straddle a source-file boundary will
+    # have multiple.
+    cell_parts: dict[tuple[int, int], list[Path]] = {}
+
+    def _block_path(det: int, block: int) -> Path:
+        return cache_dir / LAYOUT.detector_block_pattern.format(
             detector=det, block=block
         )
-        detector_block_paths[det].append(path)
-        writer = pq.ParquetWriter(path, out_schema, **_PARQUET_WRITE_KWARGS)
-        writers[key] = writer
-        return writer
+
+    def _part_path(det: int, block: int, file_idx: int) -> Path:
+        return cache_dir / f"det_{det:02d}_block-{block:d}.part-{file_idx:d}.parquet"
+
+    # State for the currently open writer (within one source file).
+    current_cell: tuple[int, int] | None = None
+    current_writer: pq.ParquetWriter | None = None
+
+    def _close_current() -> None:
+        nonlocal current_writer, current_cell
+        if current_writer is not None:
+            current_writer.close()
+            current_writer = None
+        current_cell = None
 
     try:
         global_frame_offset = 0
-        for src_path, (_, file_n_frames, _, _) in zip(
-            image_paths, file_shapes, strict=True
+        for file_idx, (src_path, (_, file_n_frames, _, _)) in enumerate(
+            zip(image_paths, file_shapes, strict=True)
         ):
+            # Each source file starts a fresh (det, block) sequence.
+            # Within the file, cells are visited in lex order; across
+            # files we may revisit cells (that straddle the file
+            # boundary), so each file writes to its own part file.
+            _close_current()
+
             pf = pq.ParquetFile(src_path)
             for batch in pf.iter_batches(
                 batch_size=batch_size,
                 columns=["detector", "frame", "row", "col", "data"],
             ):
+                if batch.num_rows == 0:
+                    continue
+
                 # Shift frame to global coordinates.
-                global_frames = pa.compute.add(
-                    pa.compute.cast(batch.column("frame"), pa.int64()),
+                global_frames = pc.add(
+                    pc.cast(batch.column("frame"), pa.int64()),
                     pa.scalar(global_frame_offset, type=pa.int64()),
                 )
                 # Block index along the frame axis.
-                block_idx = pa.compute.divide(
+                block_idx = pc.divide(
                     global_frames, pa.scalar(frames_per_chunk, type=pa.int64())
                 )
                 # Block-local frame offset.
-                local_frame = pa.compute.subtract(
+                local_frame = pc.subtract(
                     global_frames,
-                    pa.compute.multiply(
+                    pc.multiply(
                         block_idx, pa.scalar(frames_per_chunk, type=pa.int64())
                     ),
                 )
                 # Cast local frame back to the original frame dtype so
                 # the output schema stays stable.
-                local_frame = pa.compute.cast(local_frame, frame_dtype)
+                local_frame = pc.cast(local_frame, frame_dtype)
 
-                detector_arr = batch.column("detector")
-                # We need to partition (detector, block_idx).  Pyarrow
-                # has no direct groupby->iter, so we fall back to numpy.
-                det_np = detector_arr.to_numpy(zero_copy_only=False).astype(
-                    np.int64, copy=False
-                )
                 block_np = block_idx.to_numpy(zero_copy_only=False).astype(
                     np.int64, copy=False
                 )
+                det_np = (
+                    batch.column("detector")
+                    .to_numpy(zero_copy_only=False)
+                    .astype(np.int64, copy=False)
+                )
 
-                # combined key = det * (n_blocks + 1) + block
-                n_blocks = len(chunks) if chunks else 1
-                combined = det_np * (n_blocks + 1) + block_np
-                order = np.argsort(combined, kind="stable")
-                if order.size == 0:
-                    continue
-                sorted_combined = combined[order]
-                # Find run boundaries.
-                breaks = np.flatnonzero(np.diff(sorted_combined)) + 1
-                segment_starts = np.concatenate(([0], breaks))
-                segment_ends = np.concatenate((breaks, [sorted_combined.size]))
+                # Validate ranges up-front.
+                dmin = int(det_np.min())
+                dmax = int(det_np.max())
+                if dmin < 0 or dmax >= n_detectors:
+                    raise ValueError(
+                        f"Detector value out of range [0, {n_detectors})"
+                        f" in {src_path}: saw [{dmin}, {dmax}]"
+                    )
+                bmin = int(block_np.min())
+                bmax = int(block_np.max())
+                if bmin < 0 or bmax >= len(chunks):
+                    raise ValueError(
+                        f"Batch block range [{bmin}, {bmax}] out of"
+                        f" bounds [0, {len(chunks)}) in {src_path}"
+                    )
 
-                # Apply the sort to every column once.
-                indices = pa.array(order)
-                sorted_local_frame = local_frame.take(indices)
-                sorted_row = batch.column("row").take(indices)
-                sorted_col = batch.column("col").take(indices)
-                sorted_data = batch.column("data").take(indices)
-                sorted_det = det_np[order]
-                sorted_block = block_np[order]
-
-                for s, e in zip(segment_starts, segment_ends, strict=True):
-                    det_0 = int(sorted_det[s])
-                    blk = int(sorted_block[s])
-                    if not (0 <= det_0 < n_detectors):
+                # Compute the sequential cell key = det * n_blocks + block.
+                # Within a single source file the sequence of cell
+                # keys must be non-decreasing.
+                n_blocks = max(len(chunks), 1)
+                cell_key = det_np * n_blocks + block_np
+                if batch.num_rows > 1 and not np.all(np.diff(cell_key) >= 0):
+                    bad_idx = int(np.argmax(np.diff(cell_key) < 0))
+                    raise ValueError(
+                        f"Input is not sequential in (detector, frame) lex"
+                        f" order within {src_path}: row {bad_idx} is"
+                        f" (det={int(det_np[bad_idx])},"
+                        f" block={int(block_np[bad_idx])}); row"
+                        f" {bad_idx + 1} is"
+                        f" (det={int(det_np[bad_idx + 1])},"
+                        f" block={int(block_np[bad_idx + 1])})."
+                    )
+                if current_cell is not None:
+                    first_key = int(cell_key[0])
+                    active_key = (current_cell[0] - 1) * n_blocks + current_cell[1]
+                    if first_key < active_key:
                         raise ValueError(
-                            f"detector value {det_0} out of range [0,"
-                            f" {n_detectors}) in {src_path}"
+                            f"Input is not sequential in (detector, frame)"
+                            f" lex order within {src_path}: batch starts"
+                            f" at (det={int(det_np[0])},"
+                            f" block={int(block_np[0])}) but the active"
+                            f" cell is {current_cell}."
                         )
-                    if not (0 <= blk < len(chunks)):
-                        raise ValueError(
-                            f"block index {blk} out of range [0, {len(chunks)})"
-                            f" derived from global frame in {src_path}"
+
+                # Split the batch into contiguous same-cell runs.
+                cell_breaks = np.flatnonzero(np.diff(cell_key)) + 1
+                seg_starts = np.concatenate(([0], cell_breaks))
+                seg_ends = np.concatenate((cell_breaks, [cell_key.size]))
+
+                for s, e in zip(seg_starts, seg_ends, strict=True):
+                    det_0 = int(det_np[s])
+                    blk = int(block_np[s])
+                    cell = (det_0 + 1, blk)
+                    if cell != current_cell:
+                        # Advance to a new cell within this file.  The
+                        # per-file lex-order invariant guarantees we
+                        # will not return to the previous one before
+                        # the file ends.
+                        if current_writer is not None:
+                            current_writer.close()
+                            current_writer = None
+                        path = _part_path(*cell, file_idx)
+                        cell_parts.setdefault(cell, []).append(path)
+                        current_writer = pq.ParquetWriter(
+                            path, out_schema, **_PARQUET_WRITE_KWARGS
                         )
+                        current_cell = cell
+                    assert current_writer is not None
                     sub = pa.table(
                         {
-                            "frame": sorted_local_frame.slice(s, e - s),
-                            "row": sorted_row.slice(s, e - s),
-                            "col": sorted_col.slice(s, e - s),
-                            "data": sorted_data.slice(s, e - s),
+                            "frame": local_frame.slice(s, e - s),
+                            "row": batch.column("row").slice(s, e - s),
+                            "col": batch.column("col").slice(s, e - s),
+                            "data": batch.column("data").slice(s, e - s),
                         }
                     )
-                    writer = _open_writer(det_0 + 1, blk)
-                    writer.write_table(sub)
+                    current_writer.write_table(sub)
 
             global_frame_offset += file_n_frames
     finally:
-        for writer in writers.values():
-            writer.close()
+        _close_current()
 
-    # Ensure every (det, block) target exists -- some detectors / blocks
-    # may have had zero non-zero pixels in the source.  Empty parquet
-    # files keep the tiled chunk grid contiguous.
+    # ----- Consolidate parts into the canonical block parquet files -------
+    # For each cell, merge its (typically one, occasionally more) part
+    # files into the single ``det_NN_block-K.parquet`` output and
+    # unlink the parts.  At most one ParquetWriter and one ParquetFile
+    # are open at a time; finalization fd usage is bounded.
+    empty_template = pa.table(
+        {
+            "frame": pa.array([], type=frame_dtype),
+            "row": pa.array([], type=row_dtype),
+            "col": pa.array([], type=col_dtype),
+            "data": pa.array([], type=data_dtype),
+        }
+    )
     for det in range(1, n_detectors + 1):
         for blk in range(len(chunks)):
-            path = cache_dir / LAYOUT.detector_block_pattern.format(
-                detector=det, block=blk
-            )
-            if not path.exists():
-                empty = pa.table(
-                    {
-                        "frame": pa.array([], type=frame_dtype),
-                        "row": pa.array([], type=row_dtype),
-                        "col": pa.array([], type=col_dtype),
-                        "data": pa.array([], type=data_dtype),
-                    }
+            final_path = _block_path(det, blk)
+            parts = cell_parts.get((det, blk), [])
+            if not parts:
+                # No data: write an empty parquet so the tiled chunk
+                # grid stays contiguous.
+                pq.write_table(empty_template, final_path, **_PARQUET_WRITE_KWARGS)
+            elif len(parts) == 1:
+                # Common fast path.
+                parts[0].replace(final_path)
+            else:
+                writer = pq.ParquetWriter(
+                    final_path, out_schema, **_PARQUET_WRITE_KWARGS
                 )
-                pq.write_table(empty, path, **_PARQUET_WRITE_KWARGS)
-                detector_block_paths[det].append(path)
-        detector_block_paths[det].sort(key=lambda p: int(p.stem.rsplit("-", 1)[1]))
+                try:
+                    for part_path in parts:
+                        pf = pq.ParquetFile(part_path)
+                        for batch in pf.iter_batches(batch_size=batch_size):
+                            writer.write_table(pa.Table.from_batches([batch]))
+                finally:
+                    writer.close()
+                for part_path in parts:
+                    if part_path.exists():
+                        part_path.unlink()
+            detector_block_paths[det].append(final_path)
 
     # ----- Sidecars (scalars, baseline) -----------------------------------
     scalars_dst = cache_dir / LAYOUT.scalars_name

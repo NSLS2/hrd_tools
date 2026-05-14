@@ -54,9 +54,7 @@ class XrdSource(rsources.GeometricSource):
     ):
         super().__init__(*args, **kwargs)
         self.pattern_path = pattern_path
-        self.pattern = (
-            _load_pattern(pattern_path) if pattern_path is not None else None
-        )
+        self.pattern = _load_pattern(pattern_path) if pattern_path is not None else None
         self.vertical_divergence = vertical_divergence
         self.horizontal_divergence = horizontal_divergence
         self._rng = np.random.default_rng()
