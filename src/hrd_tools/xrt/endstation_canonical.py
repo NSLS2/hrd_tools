@@ -66,7 +66,7 @@ class AnalyzerBeamLine(raycing.BeamLine):
                 pitch=0,
 #                pitch='auto',
                 positionRoll=np.pi,
-                material=None, #self.crystal_material,
+                material=self.crystal_material,
                 limPhysX=[-config.cry_width / 2, config.cry_width / 2],
                 limPhysY=[-config.cry_depth / 2, config.cry_depth / 2],
                 extraRoll=np.deg2rad(config.roll),
