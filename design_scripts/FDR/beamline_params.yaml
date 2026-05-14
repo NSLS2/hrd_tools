@@ -72,7 +72,7 @@ beam:                              # diff_roll.py and similar divergence studies
   max_div_perc: 0.01               # frac  -- max fractional divergence growth allowed
 
 real_data:                         # live_data_varidation.py / real_data.py
-  root: /mnt/store/bnl/cache/hrd/beamtime_cleanup/reorg/raw/v3/   # path
+  root: /mnt/scratch/hrd/data_cache/Oct25/v3/                     # path
   dataset: 11bmb_2387                                             # name
   version: 3                        # int   -- dataset reduction version
   rois_file: rois_11bm.yaml        #        -- relative to this YAML

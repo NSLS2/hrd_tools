@@ -205,7 +205,7 @@ def estimate_crystal_offsets(
     out[det] = cum_offset = 0.0
 
     for det, (_, I) in iterator:
-        offset = np.argmax(np.correlate(ref, I, mode="full")) - Npts - 2
+        offset = np.argmax(np.correlate(ref, I, mode="full")) - Npts
         cum_offset += offset * bin_size
         out[det] = cum_offset
         ref = I
@@ -321,5 +321,60 @@ with _writer.saving(fig_gif, _gif_out, dpi=_args.dpi):
             f"$\\Delta_{{fr}}$={offset}"
         )
         _writer.grab_frame()
+
+# %%
+# Single-frame figure: central frame only, same colormap/scale, no colorbar
+fig_cf, ax_cf = plt.subplots(layout="constrained", figsize=(4, 3.5))
+ax_cf.imshow(data[center_frame].todense(), cmap=cmap_gif, norm=norm_gif, origin="lower")
+ax_cf.xaxis.set_major_locator(mticker.NullLocator())
+ax_cf.yaxis.set_major_locator(mticker.NullLocator())
+_save(fig_cf, "center_frame.png")
+
+# %%
+# Merge all 12 offset-corrected spectra into one.
+# Strategy: interpolate raw counts and monitor onto a common tth grid
+# (full union range), sum raw counts across detectors, then divide by
+# total monitor.  This weights each point by monitor exposure.
+
+step = np.mean(np.diff(arm_tth))
+
+aligned_raw: dict[int, tuple[npt.NDArray, npt.NDArray]] = {}
+tth_mins: list[float] = []
+tth_maxs: list[float] = []
+for d, (tth, I) in flats.items():
+    aligned_tth = scale_tth(
+        tth + calibs[d].offset,
+        calibs[d].wavelength,
+        calibration_config.average_wavelength,
+    )
+    # I is raw counts (not monitor-normalized); scale is a per-crystal
+    # relative-efficiency correction so still apply it to the counts.
+    aligned_raw[d] = (aligned_tth, I * calibs[d].scale)
+    tth_mins.append(float(aligned_tth.min()))
+    tth_maxs.append(float(aligned_tth.max()))
+
+common_tth = np.arange(min(tth_mins), max(tth_maxs), step)
+
+merged_counts = np.zeros_like(common_tth)
+merged_mon = np.zeros_like(common_tth)
+
+for d, (tth_a, I_a) in aligned_raw.items():
+    interp_I = np.interp(common_tth, tth_a, I_a, left=np.nan, right=np.nan)
+    interp_mon = np.interp(common_tth, tth_a, mon, left=np.nan, right=np.nan)
+    valid = np.isfinite(interp_I)
+    merged_counts[valid] += interp_I[valid]
+    merged_mon[valid] += interp_mon[valid]
+
+merged_I = np.divide(
+    merged_counts, merged_mon, out=np.zeros_like(merged_counts), where=merged_mon > 0
+)
+
+# %%
+fig_merged, ax_merged = plt.subplots(layout="constrained", figsize=(7, 4))
+ax_merged.plot(common_tth, merged_I, color="k", lw=0.5)
+ax_merged.set_xlabel(r"$2\theta$ (deg)")
+ax_merged.set_ylabel("I / monitor (arb)")
+ax_merged.set_title(f"Merged spectrum \u2014 {len(aligned_raw)} detectors")
+_save(fig_merged, "merged_spectrum.png")
 
 _fdr_params.maybe_show(_args)
