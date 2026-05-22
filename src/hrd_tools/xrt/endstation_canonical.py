@@ -8,9 +8,9 @@ import xrt.backends.raycing as raycing
 import xrt.backends.raycing.materials as rmats
 import xrt.backends.raycing.oes as roes
 import xrt.backends.raycing.screens as rscreens
-#import xrt.backends.raycing.sources as rs
-#import xrt.backends.raycing.apertures as rapts
 
+# import xrt.backends.raycing.sources as rs
+# import xrt.backends.raycing.apertures as rapts
 from ..config import AnalyzerConfig, DetectorConfig, SimConfig, SourceConfig
 from .sources import XrdSource
 from .stops import RectangularBeamstop
@@ -64,7 +64,7 @@ class AnalyzerBeamLine(raycing.BeamLine):
                 bl=self,
                 center=[0, 0, 0],
                 pitch=0,
-#                pitch='auto',
+                #                pitch='auto',
                 positionRoll=np.pi,
                 material=self.crystal_material,
                 limPhysX=[-config.cry_width / 2, config.cry_width / 2],
@@ -74,12 +74,12 @@ class AnalyzerBeamLine(raycing.BeamLine):
             baffle = RectangularBeamstop(
                 name=f"baffle{j:02d}",
                 bl=self,
-#                opening=[
-#                    -config.cry_width / 2,
-#                    config.cry_width / 2,
-#                    -0.7 * config.Rd / 2,
-#                    0.7 * config.Rd / 2,
-#                ],
+                #                opening=[
+                #                    -config.cry_width / 2,
+                #                    config.cry_width / 2,
+                #                    -0.7 * config.Rd / 2,
+                #                    0.7 * config.Rd / 2,
+                #                ],
                 opening=[-0.01, 0.01, -0.01, 0.01],
                 center=[0, 0, 0],
                 z=(0, 0, 1),
@@ -223,7 +223,7 @@ def run_process(beamLine):
         "source_screen": source_screen,
     }
 
-    for crystal, baffle, screen in zip(
+    for crystal, _baffle, screen in zip(
         beamLine.crystals,
         beamLine.baffles,
         beamLine.detector_screens,
@@ -232,7 +232,7 @@ def run_process(beamLine):
         reflected_global, reflected_local = crystal.reflect(beam=source_beam)
         out[f"{crystal.name}_local"] = reflected_local
         out[f"{crystal.name}_global"] = reflected_global
-#        out[f"{baffle.name}_local"] = baffle.propagate(beam=reflected_global)
+        #        out[f"{baffle.name}_local"] = baffle.propagate(beam=reflected_global)
         out[screen.name] = screen.expose(beam=reflected_global)
 
     return out

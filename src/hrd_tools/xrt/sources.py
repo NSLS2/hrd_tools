@@ -10,8 +10,7 @@ from xrt.backends.raycing.sources.beams import allArguments as _base_allArgument
 # every standard kwarg (center, nrays, dx, distxprime, ...).
 allArguments = tuple(
     dict.fromkeys(
-        _base_allArguments
-        + ("pattern_path", "vertical_divergence", "horizontal_divergence")
+        (*_base_allArguments, "pattern_path", "vertical_divergence", "horizontal_divergence")
     )
 )
 

@@ -149,7 +149,7 @@ def _to_yaml_dict(cfg: CompleteConfig) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _coerce_field(field_type: type, name: str, value: Any) -> Any:
+def _coerce_field(name: str, value: Any) -> Any:
     """Coerce a YAML-loaded value into the type expected by the dataclass."""
     # The dataclasses currently use only float/int/str/Optional[Path], so a
     # very small set of coercions is sufficient.
@@ -174,7 +174,7 @@ def _build_subconfig(cls: type, raw: dict[str, Any]) -> Any:
         # Auxiliary keys (not part of the dataclass) are silently ignored;
         # callers can read them off the raw YAML if they need them.
         raw = {k: v for k, v in raw.items() if k in valid}
-    coerced = {k: _coerce_field(cls, k, v) for k, v in raw.items()}
+    coerced = {k: _coerce_field(k, v) for k, v in raw.items()}
     return cls(**coerced)
 
 
