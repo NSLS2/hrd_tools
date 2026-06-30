@@ -31,7 +31,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "R",
         "units": "mm",
         "default_deltas": [0.005, 0.05, 0.5],
-        "bracket": [0, 100],
+        "max_delta": 2,
         "description": "sample to crystal distance",
     },
     "Rd": {
@@ -39,7 +39,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "R_d",
         "units": "mm",
         "default_deltas": [1, 5, 10],
-        "bracket": [0, 100],
+        "max_delta": 100,
         "description": "crystal to detector distance",
     },
     "theta_i": {
@@ -47,7 +47,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "θᵢ",
         "units": "deg",
         "default_deltas": [0.001, 0.01, 0.1],
-        "bracket": [0, 10],
+        "max_delta": 10,
         "description": "incident angle",
     },
     "theta_d": {
@@ -55,7 +55,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "θ_d",
         "units": "deg",
         "default_deltas": [0.1, 1, 10],
-        "bracket": [0, 100],
+        "max_delta": 100,
         "description": "detector angle",
     },
     "crystal_roll": {
@@ -63,7 +63,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "χ",
         "units": "deg",
         "default_deltas": [0.0001, 0.005, 0.01],
-        "bracket": [0, 0.1],
+        "max_delta": 0.1,
         "description": "crystal roll misalignment",
     },
     "crystal_yaw": {
@@ -71,7 +71,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "ψ꜀",
         "units": "deg",
         "default_deltas": [0.0001, 0.005, 0.01],
-        "bracket": [0, 0.1],
+        "max_delta": 10,
         "description": "crystal yaw misalignment",
     },
     "detector_yaw": {
@@ -79,7 +79,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "ψ_d",
         "units": "deg",
         "default_deltas": [0.0001, 0.005, 0.01],
-        "bracket": [0, 0.1],
+        "max_delta": 10,
         "description": "detector yaw misalignment",
     },
     "detector_roll": {
@@ -87,7 +87,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "φ_d",
         "units": "deg",
         "default_deltas": [0.0001, 0.005, 0.01],
-        "bracket": [0, 0.1],
+        "max_delta": 10,
         "description": "detector roll misalignment",
     },
     "center": {
@@ -95,7 +95,7 @@ PARAM_METADATA: dict[str, dict] = {
         "unicode": "z₀",
         "units": "mm",
         "default_deltas": [0.0055, 0.055, 2 * 0.055],
-        "bracket": [0, 50],
+        "max_delta": 5,
         "description": "center offset",
     },
 }
@@ -141,6 +141,7 @@ def plot_sensitivity_vs_z(
     param_name: str,
     deltas: Sequence[float],
     arm_angle: float = 45,
+    tolerance: float = 0.1,
 ) -> None:
     """
     Plot sensitivity (Δ2θ) vs detector z position at a fixed arm angle.
@@ -167,8 +168,8 @@ def plot_sensitivity_vs_z(
         label = _format_delta_label(param_name, delta)
         ax.plot(z, (baseline - corrected_tths) * 1000, label=label)
 
-    ax.axhline(1e-1, color=".5", ls="--")
-    ax.axhline(-1e-1, color=".5", ls="--")
+    ax.axhline(tolerance, color=".5", ls="--")
+    ax.axhline(-tolerance, color=".5", ls="--")
 
     ax.legend()
     ax.set_title(rf"$2\Theta$={arm_angle}°")
@@ -181,6 +182,7 @@ def plot_sensitivity_vs_arm_angle(
     param_name: str,
     deltas: Sequence[float],
     z_fixed: float = 15,
+    tolerance: float = 0.1,
 ) -> None:
     """
     Plot sensitivity (Δ2θ) vs arm angle at a fixed z position.
@@ -219,8 +221,8 @@ def plot_sensitivity_vs_arm_angle(
             arm_angle, (baseline_neg - corrected_tths_neg) * 1000, color=ln.get_color()
         )
 
-    ax.axhline(1e-1, color=".5", ls="--")
-    ax.axhline(-1e-1, color=".5", ls="--")
+    ax.axhline(tolerance, color=".5", ls="--")
+    ax.axhline(-tolerance, color=".5", ls="--")
 
     ax.set_title(rf"$z_d$={z_fixed}mm")
     ax.set_xlabel(r"arm $2\Theta$ (deg)")
@@ -233,6 +235,7 @@ def plot_sensitivity(
     deltas: Sequence[float] | None = None,
     z_fixed: float = 15,
     arm_angle_fixed: float = 45,
+    tolerance: float = 0.1,
 ) -> None:
     """
     Generate a two-panel sensitivity plot for a given parameter.
@@ -272,8 +275,22 @@ def plot_sensitivity(
 
     ax1, ax2 = fig.subplots(1, 2, sharey=True)
 
-    plot_sensitivity_vs_z(ax1, base_config, param_name, deltas, arm_angle_fixed)
-    plot_sensitivity_vs_arm_angle(ax2, base_config, param_name, deltas, z_fixed)
+    plot_sensitivity_vs_z(
+        ax1,
+        base_config,
+        param_name,
+        deltas,
+        arm_angle_fixed,
+        tolerance=tolerance,
+    )
+    plot_sensitivity_vs_arm_angle(
+        ax2,
+        base_config,
+        param_name,
+        deltas,
+        z_fixed,
+        tolerance=tolerance,
+    )
 
     ax1.set_ylabel(r"scatter $\Delta 2\theta$ (mdeg)")
 
@@ -331,35 +348,38 @@ def find_parameter_bound(
         corrected_tth, _ = tth_from_z(z_d, arm_angle, perturbed_config)
         return target_delta_tth - abs(corrected_tth - baseline_tth)
 
-    bracket = PARAM_METADATA[param_name]["bracket"]
+    max_delta = PARAM_METADATA[param_name]["max_delta"]
 
-    # Check if parameter has any sensitivity at all
-    f_low = objective(bracket[0], max_delta_tth)
-    f_high = objective(bracket[1], max_delta_tth)
-
-    # If both have same sign, check if the parameter has negligible effect
-    if f_low * f_high > 0:
+    f_p = objective(max_delta, max_delta_tth)
+    f_n = objective(max_delta, max_delta_tth)
+    if f_p >0 and f_n >0:
         # Check sensitivity at bracket upper bound
-        perturbed_config = _apply_delta(base_config, param_name, bracket[1])
+        perturbed_config = _apply_delta(base_config, param_name, max_delta)
         corrected_tth, _ = tth_from_z(z_d, arm_angle, perturbed_config)
         actual_delta = abs(corrected_tth - baseline_tth)
-
-        if actual_delta < max_delta_tth:
-            # Parameter has negligible effect even at large values
-            raise ValueError(
-                f"Parameter '{param_name}' has negligible sensitivity: "
-                f"even at {bracket[1]} {PARAM_METADATA[param_name]['units']}, "
-                f"Δ2θ = {actual_delta * 1000:.2g} mdeg < threshold {max_delta_tth_mdeg:.2g} mdeg"
-            )
-
-    try:
-        result = optimize.root_scalar(objective, args=(max_delta_tth,), bracket=bracket)
-        return result.root
-    except ValueError as e:
+        # Parameter has negligible effect even at large values
         raise ValueError(
-            f"Root finding failed for {param_name}: {e}. "
-            f"Try adjusting the bracket {bracket}."
-        ) from e
+            f"Parameter '{param_name}' has negligible sensitivity: "
+            f"even at {max_delta} {PARAM_METADATA[param_name]['units']}, "
+            f"Δ2θ = {actual_delta * 1000:.2g} mdeg < threshold {max_delta_tth_mdeg:.2g} mdeg"
+        )
+
+
+    result_p = optimize.root_scalar(
+        objective,
+        args=(max_delta_tth,),
+        bracket=[0, max_delta],
+    )
+    result_n = optimize.root_scalar(
+        objective,
+        args=(max_delta_tth,),
+        bracket=[-max_delta, 0],
+    )
+    return (
+        result_n.root,
+        result_p.root
+
+    )
 
 
 def print_bound_result(
@@ -519,6 +539,7 @@ Available parameters:
             deltas=deltas,
             z_fixed=parsed.z_position,
             arm_angle_fixed=45,
+            tolerance=parsed.tolerance,
         )
 
         if parsed.output:
