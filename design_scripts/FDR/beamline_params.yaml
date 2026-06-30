@@ -33,15 +33,16 @@ detector: # baseline ASIC; geometry pulled from hrd_tools.detector_stats
   name: medipix3 #        -- key into hrd_tools.detector_stats.detectors
 
 analyzer: # hrd_tools.config.AnalyzerConfig
+  incident_angle: null # deg   -- null => derive from source.E_incident & Si(111)
   R: 950.0 # mm    -- sample to (central) crystal
   Rd: 110.0 # mm    -- crystal to detector
   cry_offset: 2.0 # deg   -- angular spacing between adjacent crystals
+  N: 12 # count -- crystals per bank
+
   cry_width: 30.0 # mm    -- transverse to beam
   cry_depth: 70.0 # mm    -- along beam
-  N: 12 # count -- crystals per bank
-  incident_angle: null # deg   -- null => derive from source.E_incident & Si(111)
   thickness: 10.0 # mm    -- canonical analyzer crystal thickness
-  roll: 0.0 # deg   -- detector-bank roll about the beam
+  roll: 0.0 # deg   -- crystal roll about the beam
 
 scan: # hrd_tools.config.SimScanConfig
   start: 0.0 # deg
@@ -76,3 +77,18 @@ real_data: # live_data_varidation.py / real_data.py
   dataset: 11bmb_2387 # name
   version: 3 # int   -- dataset reduction version
   rois_file: rois_11bm.yaml #        -- relative to this YAML
+
+# --- Sensativities  ---------------------------------------
+parameter_bounds:
+  R: [-.08, .08] # mm -- sample to crystal, set by error is correction code
+  theta_i: [-75e-6, 75e-6]   # deg -- theta pointing on crystal, +/- 1/5 darwin width at 40kev
+  chi_c: [-.7e-3, .7e-3]       # deg -- crystal roll, set by when error in correction code
+  yaw_c: [-1, 1]             # deg -- crystal yaw, "big"
+
+
+  Rd: [-.08, .08] # mm -- crystal to detector, set by error is correction code
+  theta_d: [-.1e-3, .1e-3]   # deg -- angle between crystal and detector, keep scatter on fixed pixel
+  yaw_d: [-.32, .32]         # deg -- detectar yaw
+  roll_d: [-.7, .7]          # deg -- detecor roll
+
+  z: [-.001, .001]     # mm  -- shift of beam on detector
