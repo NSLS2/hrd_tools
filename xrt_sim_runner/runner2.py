@@ -41,7 +41,7 @@ def get_frames(
 
     out = []
 
-    for k, lb in sorted(screen_beams.items()):
+    for _k, lb in sorted(screen_beams.items()):
         # print(lb.x, lb.y, lb.z, lb.state)
         good = lb.state == states[0]
         for s in states[1:]:
@@ -90,7 +90,7 @@ def scan_to_file(
                     writer.send(sparse.concat(result_cache, axis=1))
 
 
-def dump_coro(output_dir, cache_rate, invocation, *, tlg="sim"):
+def dump_coro(output_dir, cache_rate, invocation):
     bl, tths, monitor, scan_config = yield cache_rate
 
     output_dir.mkdir(parents=True, exist_ok=True)

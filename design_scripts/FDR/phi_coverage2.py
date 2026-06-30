@@ -26,7 +26,7 @@ _save = _fdr_params.figure_saver(_args)
 # %%
 def effoctive_solid_angle(tth, config, detector_width):
     # radius of DS ring at detector
-    (arm_tth), (phi) = arm_from_z(
+    (_arm_tth), (phi) = arm_from_z(
         np.array([detector_width / 2]).reshape(1, -1),
         np.array(tth).reshape(-1, 1),
         config,
@@ -114,7 +114,7 @@ ax.plot(
     lw=2,
 )
 
-for i, (cfg, middle) in enumerate(zip(cfgs, [100, 250, 500, 900, 1000])):
+for i, (cfg, middle) in enumerate(zip(cfgs, [100, 250, 500, 900, 1000], strict=False)):
     ax2.plot(
         theta,
         max_phi[i],

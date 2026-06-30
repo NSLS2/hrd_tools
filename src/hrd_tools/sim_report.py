@@ -403,7 +403,7 @@ def generate_config_summary(
 
         fig = plt.figure(figsize=(8, 4), layout="constrained")
 
-    (sfig_src, sfig_cry, sfig_det) = fig.subfigures(1, 3)
+    sfig_src, sfig_cry, sfig_det = fig.subfigures(1, 3)
 
     display_analyzer(config.analyzer, sfig_cry, equal_aspect=False)
     display_det(config.detector, sfig_det)

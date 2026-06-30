@@ -180,7 +180,7 @@ def show2(data, tth, *, N=None):
     sub = data
     fig = plt.figure(figsize=(9, 4.5), constrained_layout=True)
 
-    (ax2, ax1) = fig.subplots(1, 2, sharey=True, width_ratios=[1, 5])
+    ax2, ax1 = fig.subplots(1, 2, sharey=True, width_ratios=[1, 5])
     ax2.set_ylabel("arm position (°)")
     ax2.set_xlabel("row sum")
     ax1.set_xlabel("detector column")

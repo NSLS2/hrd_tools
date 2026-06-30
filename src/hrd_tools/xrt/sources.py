@@ -10,7 +10,12 @@ from xrt.backends.raycing.sources.beams import allArguments as _base_allArgument
 # every standard kwarg (center, nrays, dx, distxprime, ...).
 allArguments = tuple(
     dict.fromkeys(
-        (*_base_allArguments, "pattern_path", "vertical_divergence", "horizontal_divergence")
+        (
+            *_base_allArguments,
+            "pattern_path",
+            "vertical_divergence",
+            "horizontal_divergence",
+        )
     )
 )
 
@@ -53,9 +58,7 @@ class XrdSource(rsources.GeometricSource):
     ):
         super().__init__(*args, **kwargs)
         self.pattern_path = pattern_path
-        self.pattern = (
-            _load_pattern(pattern_path) if pattern_path is not None else None
-        )
+        self.pattern = _load_pattern(pattern_path) if pattern_path is not None else None
         self.vertical_divergence = vertical_divergence
         self.horizontal_divergence = horizontal_divergence
         self._rng = np.random.default_rng()

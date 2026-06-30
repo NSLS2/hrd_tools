@@ -10,18 +10,6 @@ import numpy as np
 import tomli_w
 from cycler import Cycler, cycler
 
-
-def _to_toml_serializable(obj: Any) -> Any:
-    """Recursively convert non-TOML-serializable types (e.g. Path) to strings."""
-    if isinstance(obj, Path):
-        return str(obj)
-    if isinstance(obj, dict):
-        return {k: _to_toml_serializable(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [_to_toml_serializable(v) for v in obj]
-    return obj
-
-
 from hrd_tools.config import (
     AnalyzerCalibration,
     AnalyzerConfig,
@@ -32,6 +20,17 @@ from hrd_tools.config import (
     SimScanConfig,
     SourceConfig,
 )
+
+
+def _to_toml_serializable(obj: Any) -> Any:
+    """Recursively convert non-TOML-serializable types (e.g. Path) to strings."""
+    if isinstance(obj, Path):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {k: _to_toml_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_toml_serializable(v) for v in obj]
+    return obj
 
 
 def effective_half_phi(tth: float, d: float, detector_width: float) -> float:

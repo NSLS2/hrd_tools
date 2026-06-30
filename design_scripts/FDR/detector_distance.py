@@ -210,7 +210,7 @@ fig, ax = plt.subplots(figsize=(10, 6), layout="constrained")
 twotheta_targets = [30, 60, 90, 120]  # deg
 colors = mpl.colormaps["viridis"](np.linspace(0, 1, len(twotheta_targets)))
 
-for twotheta_target, color in zip(twotheta_targets, colors):
+for twotheta_target, color in zip(twotheta_targets, colors, strict=False):
     max_phi_at_target = []
     error_phi_at_target = []
 

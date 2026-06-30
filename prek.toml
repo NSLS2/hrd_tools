@@ -1,0 +1,124 @@
+# Configuration file for `prek`, a git hook framework written in Rust.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+exclude = { glob = "design_scripts/CDR/**" }
+
+ci = {
+    autoupdate_commit_msg = "chore: update pre-commit hooks",
+    autofix_commit_msg = "style: pre-commit fixes"
+  }
+
+[[repos]]
+repo = "https://github.com/psf/black-pre-commit-mirror"
+rev = "26.5.1"
+hooks = [
+  { id = "black-jupyter" }
+]
+
+[[repos]]
+repo = "https://github.com/adamchainz/blacken-docs"
+rev = "1.20.0"
+hooks = [
+  {
+    id = "blacken-docs",
+    additional_dependencies = ["black==23.7.0"]
+  }
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
+  { id = "check-added-large-files" },
+  { id = "check-case-conflict" },
+  { id = "check-merge-conflict" },
+  { id = "check-symlinks" },
+  { id = "check-yaml" },
+  { id = "debug-statements" },
+  { id = "end-of-file-fixer" },
+  { id = "mixed-line-ending" },
+  {
+    id = "name-tests-test",
+    args = ["--pytest-test-first"]
+  },
+  { id = "requirements-txt-fixer" },
+  { id = "trailing-whitespace" }
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/pygrep-hooks"
+rev = "v1.10.0"
+hooks = [
+  { id = "rst-backticks" },
+  { id = "rst-directive-colons" },
+  { id = "rst-inline-touching-normal" }
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/mirrors-prettier"
+rev = "v4.0.0-alpha.8"
+hooks = [
+  {
+    id = "prettier",
+    types_or = [
+      "yaml",
+      "markdown",
+      "html",
+      "css",
+      "scss",
+      "javascript",
+      "json"
+    ],
+    args = ["--prose-wrap=always"]
+  }
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.14"
+hooks = [
+  {
+    id = "ruff-check",
+    args = [
+      "--fix",
+      "--show-fixes"
+    ]
+  },
+  { id = "ruff-format" }
+]
+
+[[repos]]
+repo = "https://github.com/pre-commit/mirrors-mypy"
+rev = "v2.1.0"
+hooks = [
+  {
+    id = "mypy",
+    files = "src|tests",
+    args = [
+    ],
+    additional_dependencies = [
+      "pytest",
+      "numpy",
+      "matplotlib"
+    ]
+  }
+]
+
+[[repos]]
+repo = "https://github.com/shellcheck-py/shellcheck-py"
+rev = "v0.11.0.1"
+hooks = [
+  { id = "shellcheck" }
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "disallow-caps",
+    name = "Disallow improper capitalization",
+    language = "pygrep",
+    entry = "PyBind|Numpy|Cmake|CCache|Github|PyTest",
+    exclude = ".pre-commit-config.yaml"
+  }
+]
