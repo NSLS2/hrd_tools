@@ -1,0 +1,190 @@
+\documentclass[aspectratio=169]{beamer}
+
+\usetheme{default}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+\graphicspath{{figures/}}
+
+\title{MAC Detector Geometry: Four Cases}
+\subtitle{Comparing detector mounting strategies for HRD}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Cases considered}
+  \begin{description}
+    \item[Case A] \textbf{N independent rotating arms.} Each detector arm
+      tracks its crystal's reflected beam.  Crystal-to-detector distance and
+      incidence angle are constant by construction.  Requires one rotation
+      motor per detector.
+
+    \item[Case B] \textbf{Rigid annular plate rotating about the sample.}
+      Detectors sit on a circle of fixed radius $D = R + R_d$ centred on the
+      sample.  A single rotation motor suffices; both $r_d$ and incidence
+      angle vary with energy.
+
+    \item[Case C] \textbf{Flat plate rotating about the central crystal.}
+      The plate normal tracks the central crystal's diffracted beam.
+      Outer crystals hit the plate off-normal by their arm offset (constant).
+      $r_d$ varies with energy.
+
+    \item[Case D] \textbf{Fixed flat plate rotating about the sample.}
+      The plate is fixed perpendicular to the central arm direction at
+      $R + R_d$.  Both $r_d$ and incidence angle vary with energy for all
+      crystals.
+  \end{description}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{How to read the diagnostic panels}
+  Each case figure has three columns:
+  \begin{columns}
+    \begin{column}{0.33\textwidth}
+      \textbf{Real-space layout}\\[4pt]
+      Crystal positions (coloured dots, magma by index).
+      Detector positions (scatter, viridis by energy).
+      Reference circles and plate guide lines where applicable.
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \textbf{Crystal–detector metrics}\\[4pt]
+      \emph{Top:} crystal-to-detector distance $r_d$ vs energy.\\
+      \emph{Bottom:} beam incidence angle on detector face vs energy.\\
+      Flat lines indicate Case~A's ideal behaviour.
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \textbf{Rigid-body analysis}\\[4pt]
+      \emph{Top:} per-detector residual after best-fit rigid transform.
+      Near-zero $\Rightarrow$ one motor suffices.\\
+      \emph{Middle:} optimal rotation angle vs energy.\\
+      \emph{Bottom:} optimal translation magnitude vs energy.
+    \end{column}
+  \end{columns}
+
+  \vspace{6pt}
+  \textbf{Rigid-body transform} (Kabsch/SVD): at each energy find the
+  rotation $R$ and translation $t$ that best maps the lowest-energy detector
+  configuration onto the current one.  Residuals are what is left over.
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case A — independent rotating arms}
+  \begin{center}
+    \includegraphics[width=\linewidth]{mac_case_A}
+  \end{center}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case A — notes}
+  \begin{itemize}
+    \item $r_d = R_d$ exactly, incidence angle $= 0°$ for all crystals and
+      energies — the detector always faces the beam.
+    \item Rigid-body residual $< 1$\,mm: the detector array motion is nearly
+      (but not exactly) a rigid rotation because each arm pivots about a
+      different crystal position.
+    \item Rotation angle $\theta \lesssim 1.4°$ over the full energy range;
+      translation $< 5$\,mm.
+    \item \textbf{Cost:} one rotation motor per arm ($N = 12$ motors total).
+  \end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case B — rigid annular plate}
+  \begin{center}
+    \includegraphics[width=\linewidth]{mac_case_B}
+  \end{center}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case B — notes}
+  \begin{itemize}
+    \item Detectors on a circle of radius $D = R + R_d$ about the sample.
+    \item Rigid-body residual $= 0$ exactly: the motion \emph{is} a pure
+      rotation about the sample origin.  Translation $= 0$, $\theta$ up to
+      $1.4°$.
+    \item $r_d$ varies $\sim 5$\,mm and incidence angle varies
+      $\sim 12°$ across the energy range.
+    \item \textbf{Cost:} one rotation motor for the whole plate.
+      The varying incidence angle may reduce detector efficiency at the
+      extremes of the energy range.
+  \end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case C — flat plate rotating about the central crystal}
+  \begin{center}
+    \includegraphics[width=\linewidth]{mac_case_C}
+  \end{center}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case C — notes}
+  \begin{itemize}
+    \item Plate normal tracks the central crystal's diffracted beam.
+      Incidence angle $= $ arm offset (constant per crystal, $\pm 11°$
+      for outermost).
+    \item Rigid-body residual up to $\sim 12$\,mm: the flat plate geometry
+      cannot be captured by a single rigid motion.
+    \item Optimal rotation $\theta$ up to $13.3°$ (= twice the Bragg angle
+      sweep); translation up to $220$\,mm because the array centroid orbits
+      \texttt{rot\_center\_C}.
+    \item \textbf{Cost:} one rotation motor for the plate, but independent
+      in-plane motion per detector is required to keep the beam on each
+      detector.
+  \end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case D — fixed flat plate about the sample}
+  \begin{center}
+    \includegraphics[width=\linewidth]{mac_case_D}
+  \end{center}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Case D — notes}
+  \begin{itemize}
+    \item Plate fixed perpendicular to the central arm direction at
+      distance $R + R_d$ from the sample.
+    \item No rotation of the plate with energy ($\theta \approx 0$);
+      translation up to $\sim 29$\,mm as the beam sweeps across the plate.
+    \item Rigid-body residual up to $\sim 6$\,mm: smaller than Case~C but
+      still requires independent per-detector motion.
+    \item Incidence angle varies with energy for all crystals (including
+      the central one), unlike Case~C.
+    \item \textbf{Cost:} no rotation motor needed, but in-plane motion
+      per detector is still required.
+  \end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Summary comparison}
+  \centering
+  \begin{tabular}{lcccc}
+    \toprule
+    & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} \\
+    \midrule
+    $r_d$ constant?              & \checkmark & $\times$ & $\times$ & $\times$ \\
+    Incidence angle constant?    & \checkmark & $\times$ & per crystal & $\times$ \\
+    Rigid-body residual (mm)     & $<1$       & $0$      & $\sim 12$ & $\sim 6$ \\
+    Motors (plate-level)         & 0          & 1 rot    & 1 rot     & 0        \\
+    Motors (per detector)        & 1 rot      & 0        & 1 in-plane & 1 in-plane \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{8pt}
+  \small Case~B is the unique case where a single rigid-body motion exactly
+  captures all detector positions at all energies.  Cases~C and~D require
+  per-detector in-plane motion; Case~A requires per-detector rotation.
+\end{frame}
+
+\end{document}
