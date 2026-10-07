@@ -2,6 +2,7 @@ import subprocess
 from pathlib import Path
 from multihead.file_io import open_data
 from collections import namedtuple
+import pandas as pd
 from pprint import pprint
 
 record = namedtuple(
@@ -56,3 +57,13 @@ for rec in res:
         + f"{rec.disk_size_sparse / (rec.num_frames * 12):.2f}  kb/frame sparse\t"
         + f"{100 * rec.density:.2f}% density"
     )
+
+df = pd.DataFrame(res)
+df["ratio"] = df["disk_size_dense"] / df["disk_size_sparse"]
+
+
+print("mean kb/frame dense:", (df["disk_size_dense"] / (df["num_frames"] * 12)).mean())
+print(
+    "mean kb/frame sparse:", (df["disk_size_sparse"] / (df["num_frames"] * 12)).mean()
+)
+print("raw kb/frame:", (8 * 256 * 256) / 1024)
