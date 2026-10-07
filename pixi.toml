@@ -7,6 +7,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "win-64"]
 name = "hrd_tools"
 version = "0.0.1.dev"
+preview = ["pixi-build"]
 
 [pypi-dependencies]
 hrd_tools = { path = ".", editable = true }
@@ -48,6 +49,7 @@ xontrib-vox = ">=0.0.1, <0.0.2"
 pyqt = ">=5.15.11,<6"
 pyqtwebengine = ">=5.15.11,<6"
 pyopengl = ">=3.1.10,<4"
+qtpy = ">=2.4.3,<3"
 
 [feature.docs.dependencies]
 numpydoc = ">=1.10.0,<2"
@@ -71,13 +73,14 @@ pandas = ">=2.3.3,<3"
 tiled = ">=0.1.6,<0.2"
 pymatgen = ">=2026.3.23,<2027"
 scikit-image = ">=0.26.0,<0.27"
+multihead = { git = "https://github.com/tacaswell/multihead.git", rev="main"}
 
 [feature.reduction.target.linux-64.dependencies]
 pocl = ">=7.1,<8"
 
 [feature.reduction.pypi-dependencies]
 multianalyzer = { git = "https://github.com/kif/multianalyzer.git" }
-multihead = { git = "https://github.com/tacaswell/multihead.git", rev="main"}
+
 
 [feature.xrt.pypi-dependencies]
 xrt = { git = "https://github.com/kklmn/xrt.git" }
@@ -88,7 +91,6 @@ numpy = ">=2.4.3,<3"
 pandas = ">=2.3.3,<3"
 tqdm = ">=4.67.3,<5"
 h5py = ">=3.16.0,<4"
-pyside6 = ">=6.11.0,<7"
 sparse = ">=0.18.0,<0.19"
 pyarrow = ">=23.0.1,<24"
 

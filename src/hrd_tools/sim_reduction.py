@@ -59,7 +59,7 @@ def cat_to_fwhm(
     for key, run in cat.items():
         if config_filter is not None and not config_filter(run.metadata):
             continue
-        (res, _config, _) = results[(cat.uri, key)]
+        res, _config, _ = results[(cat.uri, key)]
         tth = res.tth
         (normed,) = normalize_result(res)
         fwhm = peak_fwhm(tth, normed, limits=limits)
@@ -414,7 +414,7 @@ def raw_grid(cat, results, config_filter=None):
             continue
         tth = np.rad2deg(sim["tth"].read())
         block = sim["block"].read().astype("int32")
-        (res, config, _) = results[(cat.uri, k)]
+        res, config, _ = results[(cat.uri, k)]
         label = " ".join(
             f"{sec}.{parm}={unit_convert[(sec, parm)][0](getattr(getattr(config, sec), parm)):.3g} {unit_convert[(sec, parm)][1]}"
             for sec, parm in (_.split(".") for _ in label_keys)
@@ -451,7 +451,7 @@ def plot_reduced_cat(
     for k, run in cat.items():
         if config_filter is not None and not config_filter(run.metadata):
             continue
-        (res, config, _) = results[(cat.uri, k)]
+        res, config, _ = results[(cat.uri, k)]
         label = " ".join(
             f"{parm}={unit_convert[(sec, parm)][0](getattr(getattr(config, sec), parm)):.3g} {unit_convert[(sec, parm)][1]}"
             for sec, parm in label_keys

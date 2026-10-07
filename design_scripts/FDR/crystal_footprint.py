@@ -1,10 +1,10 @@
 """Required crystal footprint (longitudinal & transverse) per energy/detector."""
 
+import _fdr_params
 import numpy as np
 import xrt.backends.raycing.materials as rmats
 from multihead.corrections import tth_from_z
 
-import _fdr_params
 from hrd_tools.detector_stats import detectors
 
 _args = _fdr_params.parse_args(__doc__)
@@ -22,8 +22,8 @@ def footprint(d: float, tth: float, E: float):
 
 print("Z footprint")
 
-E = 40                                         # keV
-for max_z in [3, 5]:                            # mm
+E = 40  # keV
+for max_z in [3, 5]:  # mm
     print(
         f"At {E}keV with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
     )
@@ -31,7 +31,7 @@ for max_z in [3, 5]:                            # mm
 for max_z in [3, 5]:
     print(f"{E}keV\t{max_z:} mm \t {footprint(max_z, 90, E):.2f} mm")
 
-E = 30                                         # keV
+E = 30  # keV
 for max_z in [3, 5]:
     print(
         f"At {E}keV with a {max_z:}mm sample requires a footprint of {footprint(max_z, 90, E):.2f} mm"
@@ -54,8 +54,8 @@ det_size = dict(
     )
 )
 
-arm_angles = np.array([45])                    # deg
-z = np.array(list(det_size.values())) / 2      # mm
+arm_angles = np.array([45])  # deg
+z = np.array(list(det_size.values())) / 2  # mm
 corrected_tths, corrected_phis = tth_from_z(
     z.reshape(1, -1), arm_angles.reshape(-1, 1), cfg
 )

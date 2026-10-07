@@ -26,13 +26,13 @@
 # Import required libraries and configure the analyzer with realistic parameters.
 
 # %%
+import _fdr_params
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 import numpy as np
 from multihead.corrections import arm_from_z, tth_from_z
 
-import _fdr_params
 from hrd_tools.detector_stats import detectors
 
 _args = _fdr_params.parse_args(__doc__)
@@ -76,7 +76,7 @@ z = np.linspace(-20, 20, 256)
 
 # %%
 fig, ax = plt.subplots(layout="constrained")
-thetas = np.arange(5, 90, 10)[::-1]            # deg
+thetas = np.arange(5, 90, 10)[::-1]  # deg
 cmap = mpl.colormaps["viridis"]
 
 arm_tths, _ph = arm_from_z(z.reshape(1, -1), thetas.reshape(-1, 1), cfg)
@@ -124,7 +124,7 @@ _save(fig, "corrections_arm_vs_scattering.png")
 # know the arm position and need to compute the true scattering angle.
 # %%
 fig, ax = plt.subplots(layout="constrained")
-arm_angles = np.arange(5, 90, 10)[::-1]        # deg
+arm_angles = np.arange(5, 90, 10)[::-1]  # deg
 cmap = mpl.colormaps["viridis"]
 
 corrected_tths, _ph = tth_from_z(z.reshape(1, -1), arm_angles.reshape(-1, 1), cfg)

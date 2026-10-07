@@ -8,6 +8,7 @@
 # to higher ɸ/z.
 
 # %%
+import _fdr_params
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,14 +16,17 @@ from matplotlib.transforms import blended_transform_factory
 from multihead.config import AnalyzerConfig
 from multihead.corrections import tth_from_z
 
-import _fdr_params
 from hrd_tools.detector_stats import detectors
 from hrd_tools.xrt import CrystalProperties
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
 _blessed = _fdr_params.complete_config()
-_e_keV = _args.energy_keV if _args.energy_keV is not None else _blessed.source.E_incident / 1000.0
+_e_keV = (
+    _args.energy_keV
+    if _args.energy_keV is not None
+    else _blessed.source.E_incident / 1000.0
+)
 _props = CrystalProperties.create(E=_e_keV)
 
 # %%
@@ -36,8 +40,8 @@ selected_detectors = list(detectors.keys())
 det_props = {}
 for name in selected_detectors:
     det = detectors[name]
-    width = det.sensor_shape[1] * det.pixel_pitch * 1e-3      # mm
-    pixel_size = det.pixel_pitch * 1e-3                       # mm
+    width = det.sensor_shape[1] * det.pixel_pitch * 1e-3  # mm
+    pixel_size = det.pixel_pitch * 1e-3  # mm
     det_props[name] = {"width": width, "pixel_size": pixel_size}
 print(det_props)
 
@@ -64,7 +68,7 @@ fig1, axes1 = plt.subplots(
 if n_pixel_sizes == 1:
     axes1 = [axes1]
 
-tth_arm_values = [10, 20, 30, 60, 90]          # deg
+tth_arm_values = [10, 20, 30, 60, 90]  # deg
 tth_colors = mpl.colormaps["viridis"](np.linspace(0, 1, len(tth_arm_values)))
 
 max_width = max(det_props[det]["width"] for det in selected_detectors)
@@ -139,24 +143,24 @@ _save(fig1, "inherent_correction_error_per_detector.png")
 
 # %%
 # Figure 2: effect of crystal position on error
-tth_arm_values_fig2 = np.linspace(1, 90, 90)   # deg
+tth_arm_values_fig2 = np.linspace(1, 90, 90)  # deg
 
 # Crystal-position sweep — intentionally varied (not a "blessed" parameter).
-total_distance = _blessed.analyzer.R + _blessed.analyzer.Rd     # mm
+total_distance = _blessed.analyzer.R + _blessed.analyzer.Rd  # mm
 
 cfgs_fig2 = [
     AnalyzerConfig(
-        middle,                                                 # R (mm)
-        total_distance - middle,                                # Rd (mm)
+        middle,  # R (mm)
+        total_distance - middle,  # Rd (mm)
         _props.bragg_angle,
         2 * _props.bragg_angle,
-        crystal_roll=1 / 1000,                                  # deg
+        crystal_roll=1 / 1000,  # deg
     )
     for middle in [100, 250, 500, 900, 1000]
 ]
 
 # Pixel size of the blessed baseline detector
-pixel_size_fig2 = _fdr_params.detector().pixel_pitch / 1000.0   # mm
+pixel_size_fig2 = _fdr_params.detector().pixel_pitch / 1000.0  # mm
 
 z_edges = np.array([0, pixel_size_fig2])
 

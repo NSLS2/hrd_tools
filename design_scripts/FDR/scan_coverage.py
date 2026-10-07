@@ -5,14 +5,13 @@
 # %%
 import concurrent.futures
 
+import _fdr_params
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import Normalize
 from multihead.corrections import tth_from_z
 from tqdm import tqdm
-
-import _fdr_params
 
 _args = _fdr_params.parse_args(__doc__)
 _save = _fdr_params.figure_saver(_args)
@@ -78,9 +77,7 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
 
 ax.set_xlabel(r"$2\theta$ (deg)")
 ax.set_ylabel("counts (arb.)")
-ax.set_title(
-    f"Scan coverage: {_n_banks} banks x {_n_cry} crystals, scan {scan_range}°"
-)
+ax.set_title(f"Scan coverage: {_n_banks} banks x {_n_cry} crystals, scan {scan_range}°")
 
 _save(fig, "scan_coverage.png")
 _fdr_params.maybe_show(_args)

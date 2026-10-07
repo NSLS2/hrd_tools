@@ -10,10 +10,10 @@
 # effective ɸ coverage rather than the full correction.
 
 # %%
+import _fdr_params
 import matplotlib.pyplot as plt
 import numpy as np
 
-import _fdr_params
 from hrd_tools.detector_stats import detectors
 
 _args = _fdr_params.parse_args(__doc__)

@@ -1,9 +1,9 @@
 import subprocess
-from pathlib import Path
-from multihead.file_io import open_data
 from collections import namedtuple
 import pandas as pd
-from pprint import pprint
+from pathlib import Path
+
+from multihead.file_io import open_data
 
 record = namedtuple(
     "record", "name,num_frames,density,disk_size_sparse,disk_size_dense"
@@ -54,8 +54,8 @@ per_frame_spares = []
 for rec in res:
     print(
         f"{rec.disk_size_dense / (rec.num_frames * 12):.2f} kb/frame dense\t"
-        + f"{rec.disk_size_sparse / (rec.num_frames * 12):.2f}  kb/frame sparse\t"
-        + f"{100 * rec.density:.2f}% density"
+        f"{rec.disk_size_sparse / (rec.num_frames * 12):.2f}  kb/frame sparse\t"
+        f"{100 * rec.density:.2f}% density"
     )
 
 df = pd.DataFrame(res)

@@ -10,7 +10,7 @@ trees:
       readable_storage:
         - /nsls2/data3/projects/next_iiia_hrd/xrt_output
       init_if_not_exists: true
-      adapters_by_mimetype:   
+      adapters_by_mimetype:
         application/x-hdf5: custom:SimAdapter
   - tree: catalog
     path: /reduced

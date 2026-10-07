@@ -41,6 +41,7 @@ def test_script_help_exits_zero(script: Path):
         capture_output=True,
         text=True,
         timeout=120,
+        check=False,
     )
     assert result.returncode == 0, (
         f"{script.name} --help failed (rc={result.returncode})\n"

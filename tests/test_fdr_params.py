@@ -10,7 +10,6 @@ from __future__ import annotations
 import io
 import math
 import sys
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -188,7 +187,7 @@ def test_loader_multihead_analyzer(fdr_params):
     ac = fdr_params.analyzer_multihead()
     assert isinstance(ac, MHAnalyzerConfig)
     raw = fdr_params.load()["analyzer"]
-    assert ac.R == raw["R"]
+    assert raw["R"] == ac.R
     assert ac.Rd == raw["Rd"]
     # theta_d should be 2 * theta_i (Bragg geometry).
     assert ac.theta_d == pytest.approx(2 * ac.theta_i)
@@ -266,7 +265,9 @@ def test_figure_saver_writes_to_outdir(fdr_params, tmp_path):
     mpl.use("Agg", force=True)
     import matplotlib.pyplot as plt
 
-    args = fdr_params.CLIArgs(outdir=tmp_path / "figs", dpi=72, show=False, energy_keV=None)
+    args = fdr_params.CLIArgs(
+        outdir=tmp_path / "figs", dpi=72, show=False, energy_keV=None
+    )
     save = fdr_params.figure_saver(args)
     fig, ax = plt.subplots()
     ax.plot([0, 1], [0, 1])
