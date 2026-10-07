@@ -34,7 +34,7 @@ class CrystalProperties:
     def create(
         cls,
         E: float,
-        t: float = 1.0,
+        t: float = 10.0,
         hkl: tuple[int, int, int] = (1, 1, 1),
         tK: float = 293.15,
     ) -> Self:
